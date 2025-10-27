@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BBF697A12EAF16A70061A655 /* TempContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF697A02EAF16A70061A655 /* TempContentView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		BBF697712EAF0A250061A655 /* Bookbuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bookbuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BBF697A02EAF16A70061A655 /* TempContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +39,7 @@
 			children = (
 				BBF697732EAF0A250061A655 /* Bookbuddy */,
 				BBF697722EAF0A250061A655 /* Products */,
+				BBF697A02EAF16A70061A655 /* TempContentView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -119,6 +125,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BBF697A12EAF16A70061A655 /* TempContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
