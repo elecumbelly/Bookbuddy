@@ -11,7 +11,8 @@ internal import CoreData
 struct BookDetailView: View {
     @ObservedObject var book: Book
     @Environment(\.managedObjectContext) private var viewContext
-    
+    @State private var showingUpdateProgress = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -122,9 +123,12 @@ struct BookDetailView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Update Progress") {
-                    // TODO: Implement progress update
+                    showingUpdateProgress = true
                 }
             }
+        }
+        .sheet(isPresented: $showingUpdateProgress) {
+            UpdateProgressView(book: book)
         }
     }
     

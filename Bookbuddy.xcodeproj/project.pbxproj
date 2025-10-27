@@ -6,15 +6,8 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		BBF697A12EAF16A70061A655 /* TempContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF697A02EAF16A70061A655 /* TempContentView.swift */; };
-		BBF697A92EAF279F0061A655 /* .gitignore 2 in Resources */ = {isa = PBXBuildFile; fileRef = BBF697A82EAF279F0061A655 /* .gitignore 2 */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		BBF697712EAF0A250061A655 /* Bookbuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bookbuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BBF697A02EAF16A70061A655 /* TempContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempContentView.swift; sourceTree = "<group>"; };
-		BBF697A82EAF279F0061A655 /* .gitignore 2 */ = {isa = PBXFileReference; lastKnownFileType = text; path = ".gitignore 2"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -41,8 +34,6 @@
 			children = (
 				BBF697732EAF0A250061A655 /* Bookbuddy */,
 				BBF697722EAF0A250061A655 /* Products */,
-				BBF697A02EAF16A70061A655 /* TempContentView.swift */,
-				BBF697A82EAF279F0061A655 /* .gitignore 2 */,
 			);
 			sourceTree = "<group>";
 		};
@@ -118,7 +109,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BBF697A92EAF279F0061A655 /* .gitignore 2 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -129,7 +119,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BBF697A12EAF16A70061A655 /* TempContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -267,6 +256,8 @@
 				DEVELOPMENT_TEAM = GAZ7K6K4X6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Bookbuddy needs microphone access to let you update your reading progress by voice. Just say the page number before you go to sleep!";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Bookbuddy uses speech recognition to understand the page number you speak, making it easy to update your progress hands-free.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -299,6 +290,8 @@
 				DEVELOPMENT_TEAM = GAZ7K6K4X6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Bookbuddy needs microphone access to let you update your reading progress by voice. Just say the page number before you go to sleep!";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Bookbuddy uses speech recognition to understand the page number you speak, making it easy to update your progress hands-free.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
