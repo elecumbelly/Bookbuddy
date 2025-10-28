@@ -10,6 +10,7 @@ internal import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.editMode) private var editMode
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Book.dateAdded, ascending: false)],
@@ -74,7 +75,9 @@ struct ContentView: View {
                 .navigationTitle("My Library")
             }
         }
-        .sheet(isPresented: $showingAddBook) {
+        .sheet(isPresented: $showingAddBook, onDismiss: {
+            editMode?.wrappedValue = .inactive
+        }) {
             AddBookView()
         }
         .errorAlert(title: "Error Deleting Book", isPresented: $showingError, message: errorMessage)

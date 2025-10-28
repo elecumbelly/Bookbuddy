@@ -21,8 +21,11 @@ struct UpdateProgressView: View {
     @State private var errorMessage = ""
     @FocusState private var isTextFieldFocused: Bool
 
+    @State private var autoSaveCountdown: Int? = nil
+    @State private var autoSaveTask: Task<Void, Never>? = nil
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 24) {
                 // Book Info
                 VStack(spacing: 8) {
@@ -71,7 +74,7 @@ struct UpdateProgressView: View {
                         Button(action: handleMicrophoneTap) {
                             ZStack {
                                 Circle()
-                                    .fill(speechManager.isListening ? Color.red : Color.blue)
+                                    .fill(microphoneButtonColor)
                                     .frame(width: 56, height: 56)
 
                                 if speechManager.isListening {
@@ -89,7 +92,8 @@ struct UpdateProgressView: View {
                         }
                         .accessibilityLabel(speechManager.isListening ? "Stop listening" : "Start voice input")
                         .accessibilityHint(speechManager.isListening ? "Stops recording your voice" : "Starts listening for page number")
-                        .disabled(speechManager.authorizationStatus == .denied || speechManager.authorizationStatus == .restricted)
+                        .disabled(isMicrophoneDisabled)
+                        .opacity(isMicrophoneDisabled ? 0.5 : 1.0)
                     }
                     .padding(.horizontal)
 
@@ -111,6 +115,11 @@ struct UpdateProgressView: View {
                         .transition(.opacity)
                     }
 
+                    // Authorization Status Debug
+                    Text("Auth: \(authStatusText)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+
                     // Error Message
                     if let error = speechManager.errorMessage {
                         Text(error)
@@ -120,8 +129,26 @@ struct UpdateProgressView: View {
                             .padding(.horizontal)
                     }
 
+                    // Auto-save countdown
+                    if let countdown = autoSaveCountdown {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Auto-saving in \(countdown)...")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            Button("Cancel") {
+                                print("❌ Auto-save cancel button tapped")
+                                cancelAutoSaveCountdown()
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        }
+                        .padding(.horizontal)
+                    }
+
                     // Hint Text
-                    if !speechManager.isListening {
+                    if !speechManager.isListening && autoSaveCountdown == nil {
                         Text("Tap the microphone and say: \"page 157\" or just \"157\"")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -131,26 +158,13 @@ struct UpdateProgressView: View {
                 }
 
                 Spacer()
-
-                // Save Button
-                Button(action: saveProgress) {
-                    Text("Save Progress")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isValidPageNumber ? Color.blue : Color.gray)
-                        .cornerRadius(12)
-                }
-                .disabled(!isValidPageNumber)
-                .padding(.horizontal)
-                .padding(.bottom)
             }
             .navigationTitle("Update Progress")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
+                        print("❌ Toolbar Cancel button tapped")
                         dismiss()
                     }
                 }
@@ -163,23 +177,44 @@ struct UpdateProgressView: View {
             }
             .errorAlert(title: "Error Saving Progress", isPresented: $showingError, message: errorMessage)
             .task {
-                // Request authorization on appear
-                if speechManager.authorizationStatus == .notDetermined {
-                    await speechManager.requestAuthorization()
-                }
+                print("📱 UpdateProgressView appeared")
+                print("📱 Initial auth status: \(speechManager.authorizationStatus)")
 
                 // Set initial value
                 if currentPageInput.isEmpty {
                     currentPageInput = "\(book.currentPage)"
+                    print("📱 Set initial page input to: \(book.currentPage)")
                 }
 
-                // Auto-start microphone if authorized
+                // Request authorization on appear if needed
+                if speechManager.authorizationStatus == .notDetermined {
+                    print("📱 Requesting speech authorization...")
+                    await speechManager.requestAuthorization()
+                    print("📱 Authorization result: \(speechManager.authorizationStatus)")
+                }
+
+                // Auto-start microphone if authorized (check after authorization request)
                 if speechManager.authorizationStatus == .authorized {
+                    print("📱 Authorized - attempting auto-start...")
+                    // Small delay to ensure authorization is fully processed
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                     speechManager.startListening()
+                } else {
+                    print("📱 Not authorized - status: \(speechManager.authorizationStatus)")
                 }
             }
             .onChange(of: speechManager.recognizedText) { _, newValue in
                 handleRecognizedText(newValue)
+            }
+            .onChange(of: currentPageInput) { _, _ in
+                // Cancel auto-save if user manually edits the page number
+                if isTextFieldFocused {
+                    cancelAutoSaveCountdown()
+                }
+            }
+            .onDisappear {
+                // Clean up countdown task when view disappears
+                cancelAutoSaveCountdown()
             }
         }
     }
@@ -189,26 +224,68 @@ struct UpdateProgressView: View {
         return pageNumber >= 0 && pageNumber <= book.pageCount
     }
 
+    private var isMicrophoneDisabled: Bool {
+        return speechManager.authorizationStatus == .denied ||
+               speechManager.authorizationStatus == .restricted
+    }
+
+    private var microphoneButtonColor: Color {
+        if isMicrophoneDisabled {
+            return Color.gray
+        } else if speechManager.isListening {
+            return Color.red
+        } else {
+            return Color.blue
+        }
+    }
+
+    private var authStatusText: String {
+        switch speechManager.authorizationStatus {
+        case .notDetermined:
+            return "Not Determined"
+        case .denied:
+            return "Denied"
+        case .restricted:
+            return "Restricted"
+        case .authorized:
+            return "Authorized"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
     private func handleMicrophoneTap() {
+        print("🎤 Microphone button tapped!")
+        print("🎤 Auth status: \(speechManager.authorizationStatus)")
+        print("🎤 Is listening: \(speechManager.isListening)")
+
         // Check authorization
         switch speechManager.authorizationStatus {
         case .notDetermined:
+            print("🎤 Requesting authorization...")
             Task {
                 await speechManager.requestAuthorization()
+                print("🎤 Authorization result: \(speechManager.authorizationStatus)")
                 if speechManager.authorizationStatus == .authorized {
+                    print("🎤 Starting listening after auth...")
                     speechManager.startListening()
                 }
             }
         case .denied, .restricted:
+            print("🎤 Authorization denied/restricted - showing alert")
             showingAuthAlert = true
         case .authorized:
+            print("🎤 Already authorized")
             if speechManager.isListening {
+                print("🎤 Stopping listening...")
                 speechManager.stopListening()
             } else {
+                print("🎤 Starting listening...")
                 isTextFieldFocused = false
                 speechManager.startListening()
             }
         @unknown default:
+            print("🎤 Unknown auth status")
             break
         }
     }
@@ -224,7 +301,44 @@ struct UpdateProgressView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 speechManager.stopListening()
             }
+
+            // Start auto-save countdown
+            startAutoSaveCountdown()
         }
+    }
+
+    private func startAutoSaveCountdown() {
+        // Cancel any existing countdown
+        cancelAutoSaveCountdown()
+
+        // Start countdown from 5 seconds
+        autoSaveCountdown = 5
+
+        autoSaveTask = Task {
+            for i in stride(from: 5, through: 1, by: -1) {
+                autoSaveCountdown = i
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+
+                // Check if task was cancelled
+                if Task.isCancelled {
+                    return
+                }
+            }
+
+            // Countdown complete - save progress
+            await MainActor.run {
+                if isValidPageNumber {
+                    saveProgress()
+                }
+                autoSaveCountdown = nil
+            }
+        }
+    }
+
+    private func cancelAutoSaveCountdown() {
+        autoSaveTask?.cancel()
+        autoSaveTask = nil
+        autoSaveCountdown = nil
     }
 
     private func saveProgress() {

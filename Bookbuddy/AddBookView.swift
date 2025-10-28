@@ -314,17 +314,6 @@ struct AddBookView: View {
                         Divider()
 
                         VStack(spacing: 10) {
-                            Button(action: lookupBookByISBN) {
-                                Label("Lookup ISBN", systemImage: "magnifyingglass")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .foregroundColor(.white)
-                            }
-                            .background(isbnValidationState == .valid && !isLoading ? Color.blue : Color.gray)
-                            .cornerRadius(10)
-                            .accessibilityHint("Searches for book information using the entered ISBN")
-                            .disabled(isbnValidationState != .valid || isLoading)
-
                             Button(action: {
                                 isbnFieldFocused = true
                             }) {

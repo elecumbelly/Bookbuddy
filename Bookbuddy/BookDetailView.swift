@@ -12,6 +12,7 @@ struct BookDetailView: View {
     let book: Book
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingUpdateProgress = false
+    @State private var showingImagePicker = false
     @State private var refreshID = UUID()
 
     var body: some View {
@@ -20,28 +21,44 @@ struct BookDetailView: View {
                 // Book Cover and Basic Info
                 HStack {
                     // Book cover - show actual image if available, otherwise placeholder
-                    Group {
-                        if let imageData = book.coverImageData,
-                           let uiImage = UIImage(data: imageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 120, height: 180)
-                                .clipped()
-                                .cornerRadius(12)
-                                .accessibilityLabel("Cover image for \(book.displayTitle)")
-                        } else {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 120, height: 180)
-                                .cornerRadius(12)
-                                .overlay(
-                                    Image(systemName: "book.closed")
-                                        .font(.largeTitle)
-                                        .foregroundColor(.gray)
-                                )
-                                .accessibilityLabel("Book cover placeholder for \(book.displayTitle)")
+                    ZStack(alignment: .bottomTrailing) {
+                        Group {
+                            if let imageData = book.coverImageData,
+                               let uiImage = UIImage(data: imageData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 120, height: 180)
+                                    .clipped()
+                                    .cornerRadius(12)
+                                    .accessibilityLabel("Cover image for \(book.displayTitle)")
+                            } else {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 120, height: 180)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        Image(systemName: "book.closed")
+                                            .font(.largeTitle)
+                                            .foregroundColor(.gray)
+                                    )
+                                    .accessibilityLabel("Book cover placeholder for \(book.displayTitle)")
+                            }
                         }
+
+                        // Camera button overlay
+                        Button(action: {
+                            showingImagePicker = true
+                        }) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                        }
+                        .offset(x: -4, y: -4)
+                        .accessibilityLabel("Take photo of book cover")
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -151,7 +168,74 @@ struct BookDetailView: View {
         }) {
             UpdateProgressView(book: book)
         }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: Binding(
+                get: { nil },
+                set: { newImage in
+                    if let newImage = newImage {
+                        saveCoverImage(newImage)
+                    }
+                }
+            ))
+        }
         .id(refreshID)
+    }
+
+    private func saveCoverImage(_ image: UIImage) {
+        // Compress image to JPEG at 70% quality
+        if let imageData = image.jpegData(compressionQuality: 0.7) {
+            book.coverImageData = imageData
+
+            do {
+                try viewContext.save()
+                // Refresh view to show new cover
+                refreshID = UUID()
+                viewContext.refresh(book, mergeChanges: true)
+            } catch {
+                print("Failed to save cover image: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+// MARK: - Image Picker
+struct ImagePicker: UIViewControllerRepresentable {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var image: UIImage?
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .camera
+        picker.allowsEditing = true
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let editedImage = info[.editedImage] as? UIImage {
+                parent.image = editedImage
+            } else if let originalImage = info[.originalImage] as? UIImage {
+                parent.image = originalImage
+            }
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
 
