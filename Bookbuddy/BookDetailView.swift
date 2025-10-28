@@ -12,23 +12,38 @@ struct BookDetailView: View {
     let book: Book
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingUpdateProgress = false
+    @State private var refreshID = UUID()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Book Cover and Basic Info
                 HStack {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 120, height: 180)
-                        .cornerRadius(12)
-                        .overlay(
-                            Image(systemName: "book.closed")
-                                .font(.largeTitle)
-                                .foregroundColor(.gray)
-                        )
-                        .accessibilityLabel("Book cover placeholder for \(book.displayTitle)")
-                    
+                    // Book cover - show actual image if available, otherwise placeholder
+                    Group {
+                        if let imageData = book.coverImageData,
+                           let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 120, height: 180)
+                                .clipped()
+                                .cornerRadius(12)
+                                .accessibilityLabel("Cover image for \(book.displayTitle)")
+                        } else {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 120, height: 180)
+                                .cornerRadius(12)
+                                .overlay(
+                                    Image(systemName: "book.closed")
+                                        .font(.largeTitle)
+                                        .foregroundColor(.gray)
+                                )
+                                .accessibilityLabel("Book cover placeholder for \(book.displayTitle)")
+                        }
+                    }
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text(book.displayTitle)
                             .font(.title2)
@@ -129,9 +144,14 @@ struct BookDetailView: View {
                 .accessibilityHint("Opens screen to update your current page using voice or manual input")
             }
         }
-        .sheet(isPresented: $showingUpdateProgress) {
+        .sheet(isPresented: $showingUpdateProgress, onDismiss: {
+            // Refresh the view to reflect updated progress
+            refreshID = UUID()
+            viewContext.refresh(book, mergeChanges: true)
+        }) {
             UpdateProgressView(book: book)
         }
+        .id(refreshID)
     }
 }
 

@@ -174,9 +174,14 @@ struct AddBookView: View {
     @State private var showError = false
     @State private var isScanning = true
     @State private var cameraPermissionDenied = false
-    
+    @FocusState private var isbnFieldFocused: Bool
+
     private var isbnValidationState: ISBNValidationState {
         ISBNValidator.getValidationState(isbn)
+    }
+
+    private var canSaveBook: Bool {
+        !title.isEmpty && !author.isEmpty && !isLoading
     }
     
     @ViewBuilder
@@ -209,6 +214,7 @@ struct AddBookView: View {
         TextField("ISBN (10 or 13 digits)", text: $isbn)
             .keyboardType(.default)
             .textInputAutocapitalization(.never)
+            .focused($isbnFieldFocused)
             .onSubmit {
                 handleISBNSubmit()
             }
@@ -220,22 +226,20 @@ struct AddBookView: View {
     }
     
     var body: some View {
-        NavigationView {
-            GeometryReader { geometry in
-                VStack(spacing: 0) {
-                    // Camera Scanner Section (Top 40%)
-                    ZStack {
-                        if cameraPermissionDenied {
-                            cameraPermissionDeniedView
-                        } else {
-                            BarcodeScannerView(scannedCode: $isbn, isScanning: $isScanning) { code in
-                                // Barcode detected - ISBN auto-filled
-                            }
-                            .overlay(BarcodeScannerOverlay(isScanning: isScanning))
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Camera Scanner Section (Top 30%)
+                ZStack {
+                    if cameraPermissionDenied {
+                        cameraPermissionDeniedView
+                    } else {
+                        BarcodeScannerView(scannedCode: $isbn, isScanning: $isScanning) { code in
+                            // Barcode detected - ISBN auto-filled
                         }
+                        .overlay(BarcodeScannerOverlay(isScanning: isScanning))
                     }
-                    .frame(height: geometry.size.height * 0.35)
-                    .clipShape(RoundedRectangle(cornerRadius: 0))
+                }
+                .frame(height: 250)
 
                 Divider()
 
@@ -243,7 +247,7 @@ struct AddBookView: View {
                 ScrollView {
                     VStack(spacing: 0) {
                         // Book Information Section
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
                             sectionHeader("Book Information")
 
                             isbnInputSection
@@ -266,28 +270,28 @@ struct AddBookView: View {
                             publicationDateSection
                                 .padding(.horizontal)
                         }
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 8)
                         .background(Color(uiColor: .systemGroupedBackground))
 
                         Divider()
 
                         // Description Section
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
                             sectionHeader("Description")
 
                             TextField("Book Description", text: $bookDescription, axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
-                                .lineLimit(3...6)
+                                .lineLimit(2...4)
                                 .padding(.horizontal)
                         }
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 8)
                         .background(Color(uiColor: .systemGroupedBackground))
 
                         // Cover Preview
                         if let imageData = coverImageData, let uiImage = UIImage(data: imageData) {
                             Divider()
 
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 sectionHeader("Cover Preview")
 
                                 HStack {
@@ -295,103 +299,113 @@ struct AddBookView: View {
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
-                                        .frame(maxHeight: 200)
+                                        .frame(maxHeight: 150)
                                         .cornerRadius(8)
                                         .accessibilityLabel("Book cover preview for \(title.isEmpty ? "untitled book" : title)")
                                     Spacer()
                                 }
                                 .padding(.horizontal)
                             }
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 8)
                             .background(Color(uiColor: .systemGroupedBackground))
                         }
 
                         // Action Buttons
                         Divider()
 
-                        VStack(spacing: 12) {
+                        VStack(spacing: 10) {
                             Button(action: lookupBookByISBN) {
                                 Label("Lookup ISBN", systemImage: "magnifyingglass")
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(isbnValidationState == .valid && !isLoading ? Color.blue : Color.gray)
                                     .foregroundColor(.white)
-                                    .cornerRadius(10)
                             }
+                            .background(isbnValidationState == .valid && !isLoading ? Color.blue : Color.gray)
+                            .cornerRadius(10)
                             .accessibilityHint("Searches for book information using the entered ISBN")
                             .disabled(isbnValidationState != .valid || isLoading)
 
-                            Button(action: addBookManually) {
-                                Label("Add Book Manually", systemImage: "plus.circle")
+                            Button(action: {
+                                isbnFieldFocused = true
+                            }) {
+                                Label("Enter ISBN Manually", systemImage: "keyboard")
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background((!title.isEmpty && !author.isEmpty) ? Color.green : Color.gray)
                                     .foregroundColor(.white)
-                                    .cornerRadius(10)
                             }
-                            .accessibilityHint("Adds the book to your library with the entered information")
-                            .disabled(title.isEmpty || author.isEmpty)
+                            .background(Color.orange)
+                            .cornerRadius(10)
+                            .accessibilityHint("Focuses the ISBN text field so you can type the ISBN manually")
                         }
                         .padding()
+                        .padding(.bottom, 100)
                         .background(Color(uiColor: .systemGroupedBackground))
                     }
                 }
                 .background(Color(uiColor: .systemBackground))
-                }
-                .navigationTitle("Add Book")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Cancel") {
-                            dismiss()
-                        }
+            }
+            .navigationTitle("Add Book")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .fontWeight(.regular)
                     }
+                }
 
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Save") {
-                            addBookManually()
-                        }
-                        .disabled(title.isEmpty || author.isEmpty || isLoading)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        addBookManually()
+                    } label: {
+                        Text("Save")
+                            .fontWeight(.semibold)
                     }
+                    .disabled(!canSaveBook)
                 }
-                .overlay {
-                    if isLoading {
-                        ProgressView("Looking up book...")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.black.opacity(0.3))
-                    }
+            }
+            .transaction { transaction in
+                transaction.animation = nil
+            }
+            .overlay {
+                if isLoading {
+                    ProgressView("Looking up book...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.3))
                 }
-                .errorAlert(title: "Error", isPresented: $showError, message: errorMessage)
-                .sheet(isPresented: $showDatePicker) {
-                    NavigationView {
-                        DatePicker("Publication Date", selection: Binding(
-                            get: { publishedDate ?? Date() },
-                            set: { publishedDate = $0 }
-                        ), displayedComponents: .date)
-                        .datePickerStyle(.wheel)
-                        .navigationTitle("Publication Date")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                Button("Cancel") {
-                                    showDatePicker = false
-                                }
+            }
+            .errorAlert(title: "Error", isPresented: $showError, message: errorMessage)
+            .sheet(isPresented: $showDatePicker) {
+                NavigationView {
+                    DatePicker("Publication Date", selection: Binding(
+                        get: { publishedDate ?? Date() },
+                        set: { publishedDate = $0 }
+                    ), displayedComponents: .date)
+                    .datePickerStyle(.wheel)
+                    .navigationTitle("Publication Date")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Cancel") {
+                                showDatePicker = false
                             }
+                        }
 
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") {
-                                    showDatePicker = false
-                                }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showDatePicker = false
                             }
                         }
                     }
-                    .presentationDetents([.medium])
                 }
-                .task {
-                    // Check camera permission on appear
-                    let status = await CameraPermissionHelper.checkPermission()
-                    cameraPermissionDenied = (status == .denied || status == .restricted)
-                }
+                .presentationDetents([.medium])
+            }
+            .task {
+                // Check camera permission on appear
+                let status = await CameraPermissionHelper.checkPermission()
+                cameraPermissionDenied = (status == .denied || status == .restricted)
             }
         }
     }
@@ -598,41 +612,46 @@ struct AddBookView: View {
     }
     
     private func addBookManually() {
+        // Prevent double-tap
+        guard !isLoading else { return }
+
         guard !title.isEmpty && !author.isEmpty else {
             showErrorMessage("Title and Author are required")
             return
         }
-        
-        withAnimation {
-            let newBook = Book(context: viewContext)
-            newBook.id = UUID()
-            newBook.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-            newBook.author = author.trimmingCharacters(in: .whitespacesAndNewlines)
-            newBook.isbn = isbn.isEmpty ? nil : isbn.trimmingCharacters(in: .whitespacesAndNewlines)
-            newBook.bookDescription = bookDescription.isEmpty ? nil : bookDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-            newBook.dateAdded = Date()
-            newBook.status = BookStatus.toRead.rawValue
-            newBook.currentPage = 0
-            
-            // Set publication date if available
-            newBook.publishedDate = publishedDate
-            
-            // Set cover image data if available
-            newBook.coverImageData = coverImageData
-            
-            if let pageCountInt = Int32(pageCount) {
-                newBook.pageCount = pageCountInt
-            } else {
-                newBook.pageCount = 0
-            }
-            
-            do {
-                try viewContext.save()
-                dismiss()
-            } catch {
-                let nsError = error as NSError
-                showErrorMessage("Failed to save book: \(nsError.localizedDescription)")
-            }
+
+        // Set loading state to prevent double-tap
+        isLoading = true
+
+        let newBook = Book(context: viewContext)
+        newBook.id = UUID()
+        newBook.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        newBook.author = author.trimmingCharacters(in: .whitespacesAndNewlines)
+        newBook.isbn = isbn.isEmpty ? nil : isbn.trimmingCharacters(in: .whitespacesAndNewlines)
+        newBook.bookDescription = bookDescription.isEmpty ? nil : bookDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        newBook.dateAdded = Date()
+        newBook.status = BookStatus.toRead.rawValue
+        newBook.currentPage = 0
+
+        // Set publication date if available
+        newBook.publishedDate = publishedDate
+
+        // Set cover image data if available
+        newBook.coverImageData = coverImageData
+
+        if let pageCountInt = Int32(pageCount) {
+            newBook.pageCount = pageCountInt
+        } else {
+            newBook.pageCount = 0
+        }
+
+        do {
+            try viewContext.save()
+            dismiss()
+        } catch {
+            let nsError = error as NSError
+            isLoading = false
+            showErrorMessage("Failed to save book: \(nsError.localizedDescription)")
         }
     }
     
