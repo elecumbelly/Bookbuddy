@@ -23,6 +23,7 @@ struct BookRowView: View {
                         .frame(width: 50, height: 70)
                         .clipped()
                         .cornerRadius(8)
+                        .accessibilityLabel("Cover image for \(book.displayTitle)")
                 } else {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
@@ -32,6 +33,7 @@ struct BookRowView: View {
                             Image(systemName: "book.closed")
                                 .foregroundColor(.gray)
                         )
+                        .accessibilityLabel("Book cover placeholder for \(book.displayTitle)")
                 }
             }
             
@@ -50,16 +52,16 @@ struct BookRowView: View {
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(statusColor.opacity(0.2))
-                        .foregroundColor(statusColor)
+                        .background(book.statusEnum.color.opacity(0.2))
+                        .foregroundColor(book.statusEnum.color)
                         .cornerRadius(4)
-                    
+
                     if book.statusEnum == .reading && book.pageCount > 0 {
                         Text("\(book.readingProgressPercentage)%")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                 }
             }
@@ -67,17 +69,6 @@ struct BookRowView: View {
             Spacer()
         }
         .padding(.vertical, 4)
-    }
-    
-    private var statusColor: Color {
-        switch book.statusEnum {
-        case .toRead:
-            return .blue
-        case .reading:
-            return .orange
-        case .completed:
-            return .green
-        }
     }
 }
 

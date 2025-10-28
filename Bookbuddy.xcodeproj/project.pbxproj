@@ -256,6 +256,7 @@
 				DEVELOPMENT_TEAM = GAZ7K6K4X6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Bookbuddy needs camera access to scan ISBN barcodes on books for quick lookup";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Bookbuddy needs microphone access to let you update your reading progress by voice. Just say the page number before you go to sleep!";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Bookbuddy uses speech recognition to understand the page number you speak, making it easy to update your progress hands-free.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -290,6 +291,7 @@
 				DEVELOPMENT_TEAM = GAZ7K6K4X6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Bookbuddy needs camera access to scan ISBN barcodes on books for quick lookup";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Bookbuddy needs microphone access to let you update your reading progress by voice. Just say the page number before you go to sleep!";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Bookbuddy uses speech recognition to understand the page number you speak, making it easy to update your progress hands-free.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

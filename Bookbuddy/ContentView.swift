@@ -10,13 +10,15 @@ internal import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    
+
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Book.dateAdded, ascending: false)],
         animation: .default)
     private var books: FetchedResults<Book>
-    
+
     @State private var showingAddBook = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationView {
@@ -26,7 +28,8 @@ struct ContentView: View {
                     Image(systemName: "books.vertical")
                         .font(.system(size: 60))
                         .foregroundColor(.gray)
-                    
+                        .accessibilityLabel("Empty library")
+
                     Text("No Books Yet")
                         .font(.title2)
                         .bold()
@@ -43,6 +46,7 @@ struct ContentView: View {
                             .background(Color.blue)
                             .cornerRadius(12)
                     }
+                    .accessibilityHint("Opens the add book screen where you can scan or enter book details")
                 }
                 .padding()
             } else {
@@ -64,6 +68,7 @@ struct ContentView: View {
                         Button(action: { showingAddBook = true }) {
                             Label("Add Book", systemImage: "plus")
                         }
+                        .accessibilityHint("Opens the add book screen where you can scan or enter book details")
                     }
                 }
                 .navigationTitle("My Library")
@@ -72,6 +77,7 @@ struct ContentView: View {
         .sheet(isPresented: $showingAddBook) {
             AddBookView()
         }
+        .errorAlert(title: "Error Deleting Book", isPresented: $showingError, message: errorMessage)
     }
 
     private func deleteBooks(offsets: IndexSet) {
@@ -81,9 +87,9 @@ struct ContentView: View {
             do {
                 try viewContext.save()
             } catch {
-                // Handle error appropriately in a real app
                 let nsError = error as NSError
-                print("Unresolved error \(nsError), \(nsError.userInfo)")
+                errorMessage = "Failed to delete book: \(nsError.localizedDescription)"
+                showingError = true
             }
         }
     }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 public import CoreData
 
 @objc(Book)
@@ -67,12 +68,23 @@ enum BookStatus: String, CaseIterable {
     case toRead = "to-read"
     case reading = "reading"
     case completed = "completed"
-    
+
     var displayName: String {
         switch self {
         case .toRead: return "To Read"
         case .reading: return "Reading"
         case .completed: return "Completed"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .toRead:
+            return .blue
+        case .reading:
+            return .orange
+        case .completed:
+            return .green
         }
     }
 }

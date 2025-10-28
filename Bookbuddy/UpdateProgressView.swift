@@ -10,13 +10,15 @@ import Speech
 internal import CoreData
 
 struct UpdateProgressView: View {
-    @ObservedObject var book: Book
+    let book: Book
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var speechManager = SpeechRecognitionManager()
     @State private var currentPageInput: String = ""
     @State private var showingAuthAlert = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
@@ -85,6 +87,8 @@ struct UpdateProgressView: View {
                                     .foregroundColor(.white)
                             }
                         }
+                        .accessibilityLabel(speechManager.isListening ? "Stop listening" : "Start voice input")
+                        .accessibilityHint(speechManager.isListening ? "Stops recording your voice" : "Starts listening for page number")
                         .disabled(speechManager.authorizationStatus == .denied || speechManager.authorizationStatus == .restricted)
                     }
                     .padding(.horizontal)
@@ -157,6 +161,7 @@ struct UpdateProgressView: View {
             } message: {
                 Text("Please enable microphone access in Settings to use voice input for page numbers.")
             }
+            .errorAlert(title: "Error Saving Progress", isPresented: $showingError, message: errorMessage)
             .task {
                 // Request authorization on appear
                 if speechManager.authorizationStatus == .notDetermined {
@@ -238,7 +243,8 @@ struct UpdateProgressView: View {
             try viewContext.save()
             dismiss()
         } catch {
-            print("Error saving progress: \(error)")
+            errorMessage = "Failed to save progress: \(error.localizedDescription)"
+            showingError = true
         }
     }
 

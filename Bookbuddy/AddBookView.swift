@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 internal import CoreData
 
 // Error types for better error handling
@@ -159,7 +160,7 @@ extension DateFormatter {
 struct AddBookView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var isbn = ""
     @State private var title = ""
     @State private var author = ""
@@ -171,6 +172,8 @@ struct AddBookView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
+    @State private var isScanning = true
+    @State private var cameraPermissionDenied = false
     
     private var isbnValidationState: ISBNValidationState {
         ISBNValidator.getValidationState(isbn)
@@ -218,134 +221,256 @@ struct AddBookView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                Section("Book Information") {
-                    // Enhanced ISBN field with validation
-                    isbnInputSection
-                    
-                    TextField("Title", text: $title)
-                    
-                    TextField("Author", text: $author)
-                    
-                    TextField("Page Count", text: $pageCount)
-                        .keyboardType(.numberPad)
-                    
-                    // Publication Date with optional picker
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Publication Date")
-                                .foregroundColor(.secondary)
-                            if let date = publishedDate {
-                                Text(date, style: .date)
-                            } else {
-                                Text("Not set")
-                                    .foregroundStyle(.tertiary)
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    // Camera Scanner Section (Top 40%)
+                    ZStack {
+                        if cameraPermissionDenied {
+                            cameraPermissionDeniedView
+                        } else {
+                            BarcodeScannerView(scannedCode: $isbn, isScanning: $isScanning) { code in
+                                // Barcode detected - ISBN auto-filled
+                            }
+                            .overlay(BarcodeScannerOverlay(isScanning: isScanning))
+                        }
+                    }
+                    .frame(height: geometry.size.height * 0.35)
+                    .clipShape(RoundedRectangle(cornerRadius: 0))
+
+                Divider()
+
+                // Form Section (Bottom 60%)
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Book Information Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            sectionHeader("Book Information")
+
+                            isbnInputSection
+                                .padding(.horizontal)
+
+                            TextField("Title", text: $title)
+                                .textFieldStyle(.roundedBorder)
+                                .padding(.horizontal)
+
+                            TextField("Author", text: $author)
+                                .textFieldStyle(.roundedBorder)
+                                .padding(.horizontal)
+
+                            TextField("Page Count", text: $pageCount)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(.roundedBorder)
+                                .padding(.horizontal)
+
+                            // Publication Date
+                            publicationDateSection
+                                .padding(.horizontal)
+                        }
+                        .padding(.vertical, 12)
+                        .background(Color(uiColor: .systemGroupedBackground))
+
+                        Divider()
+
+                        // Description Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            sectionHeader("Description")
+
+                            TextField("Book Description", text: $bookDescription, axis: .vertical)
+                                .textFieldStyle(.roundedBorder)
+                                .lineLimit(3...6)
+                                .padding(.horizontal)
+                        }
+                        .padding(.vertical, 12)
+                        .background(Color(uiColor: .systemGroupedBackground))
+
+                        // Cover Preview
+                        if let imageData = coverImageData, let uiImage = UIImage(data: imageData) {
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                sectionHeader("Cover Preview")
+
+                                HStack {
+                                    Spacer()
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxHeight: 200)
+                                        .cornerRadius(8)
+                                        .accessibilityLabel("Book cover preview for \(title.isEmpty ? "untitled book" : title)")
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                            }
+                            .padding(.vertical, 12)
+                            .background(Color(uiColor: .systemGroupedBackground))
+                        }
+
+                        // Action Buttons
+                        Divider()
+
+                        VStack(spacing: 12) {
+                            Button(action: lookupBookByISBN) {
+                                Label("Lookup ISBN", systemImage: "magnifyingglass")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(isbnValidationState == .valid && !isLoading ? Color.blue : Color.gray)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
+                            .accessibilityHint("Searches for book information using the entered ISBN")
+                            .disabled(isbnValidationState != .valid || isLoading)
+
+                            Button(action: addBookManually) {
+                                Label("Add Book Manually", systemImage: "plus.circle")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background((!title.isEmpty && !author.isEmpty) ? Color.green : Color.gray)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
+                            .accessibilityHint("Adds the book to your library with the entered information")
+                            .disabled(title.isEmpty || author.isEmpty)
+                        }
+                        .padding()
+                        .background(Color(uiColor: .systemGroupedBackground))
+                    }
+                }
+                .background(Color(uiColor: .systemBackground))
+                }
+                .navigationTitle("Add Book")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Save") {
+                            addBookManually()
+                        }
+                        .disabled(title.isEmpty || author.isEmpty || isLoading)
+                    }
+                }
+                .overlay {
+                    if isLoading {
+                        ProgressView("Looking up book...")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black.opacity(0.3))
+                    }
+                }
+                .errorAlert(title: "Error", isPresented: $showError, message: errorMessage)
+                .sheet(isPresented: $showDatePicker) {
+                    NavigationView {
+                        DatePicker("Publication Date", selection: Binding(
+                            get: { publishedDate ?? Date() },
+                            set: { publishedDate = $0 }
+                        ), displayedComponents: .date)
+                        .datePickerStyle(.wheel)
+                        .navigationTitle("Publication Date")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button("Cancel") {
+                                    showDatePicker = false
+                                }
+                            }
+
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showDatePicker = false
+                                }
                             }
                         }
-                        
-                        Spacer()
-                        
-                        Button(publishedDate == nil ? "Set Date" : "Change") {
-                            showDatePicker = true
-                        }
-                        .buttonStyle(.borderless)
-                        
-                        if publishedDate != nil {
-                            Button("Clear") {
-                                publishedDate = nil
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundColor(.red)
-                        }
                     }
+                    .presentationDetents([.medium])
                 }
-                
-                Section("Description") {
-                    TextField("Book Description", text: $bookDescription, axis: .vertical)
-                        .lineLimit(3...6)
+                .task {
+                    // Check camera permission on appear
+                    let status = await CameraPermissionHelper.checkPermission()
+                    cameraPermissionDenied = (status == .denied || status == .restricted)
                 }
-                
-                if let imageData = coverImageData, let uiImage = UIImage(data: imageData) {
-                    Section("Cover Preview") {
-                        HStack {
-                            Spacer()
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(maxHeight: 200)
-                                .cornerRadius(8)
-                            Spacer()
-                        }
-                    }
-                }
-                
-                Section {
-                    Button("Lookup ISBN") {
-                        lookupBookByISBN()
-                    }
-                    .disabled(isbnValidationState != .valid || isLoading)
-                    
-                    Button("Add Book Manually") {
-                        addBookManually()
-                    }
-                    .disabled(title.isEmpty || author.isEmpty)
-                }
-            }
-            .navigationTitle("Add Book")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        addBookManually()
-                    }
-                    .disabled(title.isEmpty || author.isEmpty || isLoading)
-                }
-            }
-            .overlay {
-                if isLoading {
-                    ProgressView("Looking up book...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.opacity(0.3))
-                }
-            }
-            .alert("Error", isPresented: $showError) {
-                Button("OK") { }
-            } message: {
-                Text(errorMessage)
-            }
-            .sheet(isPresented: $showDatePicker) {
-                NavigationView {
-                    DatePicker("Publication Date", selection: Binding(
-                        get: { publishedDate ?? Date() },
-                        set: { publishedDate = $0 }
-                    ), displayedComponents: .date)
-                    .datePickerStyle(.wheel)
-                    .navigationTitle("Publication Date")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Cancel") {
-                                showDatePicker = false
-                            }
-                        }
-                        
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                showDatePicker = false
-                            }
-                        }
-                    }
-                }
-                .presentationDetents([.medium])
             }
         }
     }
+
+    // MARK: - Helper Views
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.headline)
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+    }
+
+    private var publicationDateSection: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Publication Date")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                if let date = publishedDate {
+                    Text(date, style: .date)
+                        .font(.body)
+                } else {
+                    Text("Not set")
+                        .font(.body)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            Spacer()
+
+            Button(publishedDate == nil ? "Set Date" : "Change") {
+                showDatePicker = true
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            if publishedDate != nil {
+                Button("Clear") {
+                    publishedDate = nil
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(.red)
+            }
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .cornerRadius(8)
+    }
+
+    private var cameraPermissionDeniedView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "camera.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+                .accessibilityLabel("Camera access denied")
+
+            Text("Camera Access Required")
+                .font(.headline)
+
+            Text("Please enable camera access in Settings to scan ISBN barcodes")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button("Open Settings") {
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+            .buttonStyle(.bordered)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+
     
     // MARK: - ISBN Input Helpers
     
@@ -379,11 +504,10 @@ struct AddBookView: View {
             showErrorMessage("Please enter a valid ISBN")
             return
         }
-        
-        print("🔍 Starting ISBN lookup for: \(isbn)")
+
         isLoading = true
         errorMessage = ""
-        
+
         Task {
             do {
                 try await performISBNLookup()
@@ -399,39 +523,25 @@ struct AddBookView: View {
     private func performISBNLookup() async throws {
         // Use Open Library API to lookup book by ISBN
         let cleanISBN = isbn.replacingOccurrences(of: "-", with: "")
-        print("📚 Clean ISBN: \(cleanISBN)")
-        
+
         let urlString = "https://openlibrary.org/api/books?bibkeys=ISBN:\(cleanISBN)&format=json&jscmd=data"
-        print("🌐 API URL: \(urlString)")
-        
+
         guard let url = URL(string: urlString) else {
             throw BookLookupError.invalidURL
         }
-        
-        print("🚀 Starting network request...")
-        
+
         let (data, response) = try await URLSession.shared.data(from: url)
-        
+
         if let httpResponse = response as? HTTPURLResponse {
-            print("📊 HTTP Status: \(httpResponse.statusCode)")
             guard httpResponse.statusCode == 200 else {
                 throw BookLookupError.httpError(httpResponse.statusCode)
             }
         }
-        
-        print("✅ Received \(data.count) bytes of data")
-        
-        // Debug: Print the raw response
-        if let jsonString = String(data: data, encoding: .utf8) {
-            print("API Response: \(jsonString)")
-        }
-        
+
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw BookLookupError.invalidResponse
         }
-        
-        print("Parsed JSON: \(json)")
-        
+
         await MainActor.run {
             processBookData(json: json, cleanISBN: cleanISBN)
             isLoading = false
@@ -449,62 +559,38 @@ struct AddBookView: View {
             return
         }
         
-        print("📖 All available fields: \(bookData.keys.sorted())")
-        
         // Extract book information
         if let bookTitle = bookData["title"] as? String {
             title = bookTitle
-            print("✅ Found title: \(bookTitle)")
         }
-        
+
         if let authors = bookData["authors"] as? [[String: Any]],
            let firstAuthor = authors.first,
            let authorName = firstAuthor["name"] as? String {
             author = authorName
-            print("✅ Found author: \(authorName)")
         }
-        
+
         if let pages = bookData["number_of_pages"] as? Int {
             pageCount = String(pages)
-            print("✅ Found page count: \(pages)")
         }
-        
+
         // Try multiple fields for description
         if let description = bookData["notes"] as? String {
             bookDescription = description
-            print("✅ Found description from notes: \(description.prefix(50))...")
         } else if let excerpts = bookData["excerpts"] as? [[String: Any]],
                   let firstExcerpt = excerpts.first,
                   let excerptText = firstExcerpt["text"] as? String {
             bookDescription = excerptText
-            print("✅ Found description from excerpts: \(excerptText.prefix(50))...")
         }
-        
-        // Log other available fields for future use
+
+        // Parse publication date
         if let publishDate = bookData["publish_date"] as? String {
-            print("📅 Available publish date: \(publishDate)")
-            // Parse the publication date
             publishedDate = parsePublishDate(publishDate)
-            if publishedDate != nil {
-                print("✅ Parsed publication date: \(publishedDate!)")
-            }
         }
-        
-        if let publishers = bookData["publishers"] as? [[String: Any]],
-           let firstPublisher = publishers.first,
-           let publisherName = firstPublisher["name"] as? String {
-            print("🏢 Available publisher: \(publisherName)")
-        }
-        
-        if let subjects = bookData["subjects"] as? [[String: Any]] {
-            let subjectNames = subjects.compactMap { $0["name"] as? String }
-            print("🏷️ Available subjects: \(subjectNames.prefix(3))")
-        }
-        
+
+        // Download cover image if available
         if let cover = bookData["cover"] as? [String: Any],
            let coverUrl = cover["large"] as? String ?? cover["medium"] as? String ?? cover["small"] as? String {
-            print("🖼️ Available cover image: \(coverUrl)")
-            // Download the cover image
             Task {
                 await downloadCoverImage(from: coverUrl)
             }
@@ -571,27 +657,27 @@ struct AddBookView: View {
     
     private func downloadCoverImage(from urlString: String) async {
         guard let url = URL(string: urlString) else {
-            print("❌ Invalid cover image URL")
             return
         }
-        
-        print("📥 Downloading cover image from: \(urlString)")
-        
+
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            
-            // Verify it's actually image data
-            if let _ = UIImage(data: data) {
+
+            // Verify it's actually image data and compress it
+            if let image = UIImage(data: data) {
                 await MainActor.run {
-                    coverImageData = data
-                    print("✅ Cover image downloaded successfully (\(data.count) bytes)")
+                    coverImageData = compressImage(image)
                 }
-            } else {
-                print("❌ Downloaded data is not a valid image")
             }
         } catch {
-            print("❌ Cover image download error: \(error.localizedDescription)")
+            // Failed to download cover image - silently continue
         }
+    }
+
+    private func compressImage(_ image: UIImage) -> Data? {
+        // Compress to JPEG at 70% quality for reasonable file size
+        // This typically reduces cover images from ~500KB to ~50-100KB
+        return image.jpegData(compressionQuality: 0.7)
     }
     
     private func showErrorMessage(_ message: String) {

@@ -9,7 +9,7 @@ import SwiftUI
 internal import CoreData
 
 struct BookDetailView: View {
-    @ObservedObject var book: Book
+    let book: Book
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingUpdateProgress = false
 
@@ -27,6 +27,7 @@ struct BookDetailView: View {
                                 .font(.largeTitle)
                                 .foregroundColor(.gray)
                         )
+                        .accessibilityLabel("Book cover placeholder for \(book.displayTitle)")
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text(book.displayTitle)
@@ -60,10 +61,10 @@ struct BookDetailView: View {
                         Text(book.statusEnum.displayName)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(statusColor.opacity(0.2))
-                            .foregroundColor(statusColor)
+                            .background(book.statusEnum.color.opacity(0.2))
+                            .foregroundColor(book.statusEnum.color)
                             .cornerRadius(8)
-                        
+
                         Spacer()
                     }
                 }
@@ -125,21 +126,11 @@ struct BookDetailView: View {
                 Button("Update Progress") {
                     showingUpdateProgress = true
                 }
+                .accessibilityHint("Opens screen to update your current page using voice or manual input")
             }
         }
         .sheet(isPresented: $showingUpdateProgress) {
             UpdateProgressView(book: book)
-        }
-    }
-    
-    private var statusColor: Color {
-        switch book.statusEnum {
-        case .toRead:
-            return .blue
-        case .reading:
-            return .orange
-        case .completed:
-            return .green
         }
     }
 }

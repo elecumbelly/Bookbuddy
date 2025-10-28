@@ -5,9 +5,10 @@
 //  Created by Stephen Spence on 27/10/2025.
 //
 
+import Foundation
 internal import CoreData
 
-struct PersistenceController {
+class PersistenceController {
     static let shared = PersistenceController()
 
     @MainActor
@@ -18,28 +19,40 @@ struct PersistenceController {
     }()
 
     let container: NSPersistentContainer
+    private(set) var loadError: Error?
 
     init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "Bookbuddy")
-        if inMemory {
-            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
-        }
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
-            if let error = error as NSError? {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
 
-                /*
-                 Typical reasons for an error here include:
-                 * The parent directory does not exist, cannot be created, or disallows writing.
-                 * The persistent store is not accessible, due to permissions or data protection when the device is locked.
-                 * The device is out of space.
-                 * The store could not be migrated to the current model version.
-                 Check the error message to determine what the actual problem was.
-                 */
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+        if inMemory {
+            if let description = container.persistentStoreDescriptions.first {
+                description.url = URL(fileURLWithPath: "/dev/null")
             }
-        })
+        }
+
+        container.loadPersistentStores { (storeDescription, error) in
+            if let error = error as NSError? {
+                // Log error for debugging
+                print("⚠️ Core Data error: \(error.localizedDescription)")
+
+                // Store error for potential UI display
+                self.loadError = error
+
+                // Fallback to in-memory store so app doesn't crash
+                // This allows the app to continue functioning, but data won't persist
+                let inMemoryDescription = NSPersistentStoreDescription()
+                inMemoryDescription.type = NSInMemoryStoreType
+
+                self.container.persistentStoreCoordinator.addPersistentStore(
+                    with: inMemoryDescription
+                ) { _, fallbackError in
+                    if let fallbackError = fallbackError {
+                        print("⚠️ Critical: Could not create fallback store: \(fallbackError)")
+                    }
+                }
+            }
+        }
+
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
 }
