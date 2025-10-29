@@ -115,12 +115,19 @@ class SpeechRecognitionManager: ObservableObject {
         }
     }
 
+    #warning("🚨 PROTECTED CODE: Do not add AVAudioSession.setActive(false) here - interferes with camera audio. See .agent/.agentknown-issues.md")
     func stopListening() {
         print("🎙️ stopListening() called")
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
+
+        // ⚠️ CRITICAL: DO NOT call AVAudioSession.setActive(false) here!
+        // Aggressive audio session deactivation interferes with camera/document scanner audio,
+        // causing gesture recognition failures and "FigCaptureSourceRemote" errors.
+        // Let iOS manage audio session lifecycle automatically. (See v0.5.2 → v0.5.3 regression)
+        // Reference: .agent/.agentknown-issues.md
 
         isListening = false
         recognitionRequest = nil

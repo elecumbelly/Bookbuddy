@@ -186,7 +186,11 @@ struct UpdateProgressView: View {
                     await speechManager.requestAuthorization()
                 }
 
-                // Auto-start microphone if authorized (check after authorization request)
+                #warning("🚨 PROTECTED CODE: Do not remove auto-start - it's REQUIRED for hands-free workflow. See .agent/.agentknown-issues.md")
+                // ⚠️ IMPORTANT: Auto-start microphone is REQUIRED by user workflow
+                // User wants hands-free operation - mic starts automatically, button is only
+                // used to stop/restart if speech recognition gets it wrong.
+                // DO NOT REMOVE this auto-start behavior! (See v0.5.2 regression)
                 if speechManager.authorizationStatus == .authorized {
                     print("🎙️ Auto-starting microphone")
                     // Small delay to ensure authorization is fully processed
@@ -245,8 +249,15 @@ struct UpdateProgressView: View {
         }
     }
 
+    #warning("🚨 PROTECTED CODE: Do not add UIImpactFeedbackGenerator here - breaks gesture recognition on devices without haptic support. See .agent/.agentknown-issues.md")
     private func handleMicrophoneTap() {
         print("🎙️ Mic button tapped")
+
+        // ⚠️ CRITICAL: DO NOT ADD HAPTIC FEEDBACK HERE!
+        // UIImpactFeedbackGenerator blocks the main thread on devices without haptic support,
+        // causing "System gesture gate timed out" errors that break ALL gesture recognition
+        // (mic button, document scanner crop handles, etc.). See v0.5.2 → v0.5.3 regression.
+        // Reference: .agent/.agentknown-issues.md
 
         // Debounce: ignore rapid taps within 0.3 seconds
         if let lastTap = lastMicTapTime,
