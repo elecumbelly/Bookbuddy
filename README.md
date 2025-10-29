@@ -26,6 +26,14 @@ Perfect for bedtime readers who want to quickly log their reading progress or sc
 - **Current Page Tracking**: Know exactly where you left off
 - **Reading Statistics**: Track which books you're reading and which are complete
 
+### 📸 Page Photo Capture & Markup
+- **Page Photography**: Capture photos of interesting book pages
+- **PencilKit Markup**: Annotate with pen, pencil, highlighter, eraser, and ruler
+- **Pinch-to-Zoom**: Zoom up to 5x during markup for precise annotations
+- **Photo Archive**: Store and organize all your page photos by book
+- **Zoomable Viewer**: View archived photos with full zoom capability
+- **Share & Delete**: Share marked-up photos or remove from archive
+
 ---
 
 ## 🏗️ Architecture
@@ -144,6 +152,26 @@ Bookbuddy/
    - Type page number
    - Tap **Save Progress**
 
+### Capturing Page Photos
+
+1. Open a book from your library
+2. Tap **Capture Page** button
+3. Take a photo of the page
+4. **Markup** (optional):
+   - Tap Markup button
+   - Use pen, pencil, highlighter, or eraser
+   - Pinch to zoom for precise annotations
+   - Tap Done when finished
+5. **Share** (optional): Share the photo via iOS share sheet
+6. Tap **Save to Archive** to keep the photo with your book
+
+### Viewing Page Photos
+
+1. Scroll to the bottom of any book's detail page
+2. Tap any thumbnail to view full-screen
+3. Pinch to zoom for better detail
+4. Share or delete photos as needed
+
 ### Managing Your Library
 
 - **View all books**: Scroll through your library on the main screen
@@ -184,8 +212,9 @@ xcodebuild -project Bookbuddy.xcodeproj \
 
 ### Core Data Model
 
-The app uses Core Data with a single `Book` entity:
+The app uses Core Data with `Book` and `PagePhoto` entities:
 
+**Book Entity:**
 | Attribute | Type | Optional | Description |
 |-----------|------|----------|-------------|
 | id | UUID | No | Unique identifier |
@@ -196,9 +225,18 @@ The app uses Core Data with a single `Book` entity:
 | pageCount | Int32 | No | Total pages (default: 0) |
 | currentPage | Int32 | No | Current reading position (default: 0) |
 | dateAdded | Date | Yes | When book was added |
-| coverImageData | Binary | Yes | Cover image (JPEG/PNG data) |
+| coverImageData | Binary | Yes | Cover image (JPEG data, 70% quality) |
 | bookDescription | String | Yes | Book description/summary |
 | status | String | Yes | "to-read", "reading", "completed" |
+| pagePhotos | Relationship | Yes | One-to-many to PagePhoto |
+
+**PagePhoto Entity:**
+| Attribute | Type | Optional | Description |
+|-----------|------|----------|-------------|
+| id | UUID | Yes | Unique identifier |
+| imageData | Binary | Yes | Photo data (JPEG, 70% quality) |
+| dateAdded | Date | Yes | When photo was captured |
+| book | Relationship | Yes | Many-to-one to Book |
 
 ### ISBN Validation
 
@@ -254,15 +292,24 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🗺️ Roadmap
 
-Potential future features:
+### Completed (v0.1 - v0.4)
+- [x] Barcode scanning for ISBN lookup
+- [x] Voice-enabled progress updates
+- [x] Page photo capture with markup
+- [x] Photo archive and viewer
+- [x] Zoom functionality for markup and viewing
+
+### Future Features
 - [ ] Export library to CSV/PDF
 - [ ] Reading statistics and charts
 - [ ] Book recommendations
-- [ ] Notes and highlights
+- [ ] Notes and highlights per book
 - [ ] Share book recommendations with friends
 - [ ] Dark mode theming
-- [ ] iPad optimization
+- [ ] iPad optimization with split view
 - [ ] Goodreads integration
+- [ ] Book clubs and social features
+- [ ] Reading goals and challenges
 
 ---
 
