@@ -38,7 +38,9 @@ class SpeechRecognitionManager: ObservableObject {
     }
 
     func startListening() {
+        print("🎙️ startListening() called")
         guard !isListening else {
+            print("🎙️ Already listening - returning")
             return
         }
 
@@ -51,9 +53,12 @@ class SpeechRecognitionManager: ObservableObject {
         // Configure audio session
         let audioSession = AVAudioSession.sharedInstance()
         do {
+            print("🎙️ Configuring audio session...")
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            print("🎙️ Audio session configured")
         } catch {
+            print("🎙️ ❌ Audio session error: \(error.localizedDescription)")
             errorMessage = "Audio session error: \(error.localizedDescription)"
             return
         }
@@ -103,23 +108,24 @@ class SpeechRecognitionManager: ObservableObject {
             isListening = true
             recognizedText = ""
             errorMessage = nil
+            print("🎙️ ✅ Audio engine started - now listening!")
         } catch {
+            print("🎙️ ❌ Audio engine error: \(error.localizedDescription)")
             errorMessage = "Audio engine error: \(error.localizedDescription)"
         }
     }
 
     func stopListening() {
+        print("🎙️ stopListening() called")
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
 
-        // Reset audio session to allow other audio
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-
         isListening = false
         recognitionRequest = nil
         recognitionTask = nil
+        print("🎙️ Stopped listening")
     }
 
     // Extract page number from spoken text

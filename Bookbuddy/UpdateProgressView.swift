@@ -185,6 +185,14 @@ struct UpdateProgressView: View {
                 if speechManager.authorizationStatus == .notDetermined {
                     await speechManager.requestAuthorization()
                 }
+
+                // Auto-start microphone if authorized (check after authorization request)
+                if speechManager.authorizationStatus == .authorized {
+                    print("🎙️ Auto-starting microphone")
+                    // Small delay to ensure authorization is fully processed
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                    speechManager.startListening()
+                }
             }
             .onChange(of: speechManager.recognizedText) { _, newValue in
                 handleRecognizedText(newValue)
@@ -238,16 +246,15 @@ struct UpdateProgressView: View {
     }
 
     private func handleMicrophoneTap() {
+        print("🎙️ Mic button tapped")
+
         // Debounce: ignore rapid taps within 0.3 seconds
         if let lastTap = lastMicTapTime,
            Date().timeIntervalSince(lastTap) < 0.3 {
+            print("🎙️ Debounced - ignoring tap")
             return
         }
         lastMicTapTime = Date()
-
-        // Immediate haptic feedback for responsiveness
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
 
         // Check authorization
         switch speechManager.authorizationStatus {
