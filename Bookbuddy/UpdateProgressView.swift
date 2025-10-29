@@ -138,7 +138,6 @@ struct UpdateProgressView: View {
                                 .font(.caption)
                                 .foregroundColor(.blue)
                             Button("Cancel") {
-                                print("❌ Auto-save cancel button tapped")
                                 cancelAutoSaveCountdown()
                             }
                             .font(.caption)
@@ -164,7 +163,6 @@ struct UpdateProgressView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        print("❌ Toolbar Cancel button tapped")
                         dismiss()
                     }
                 }
@@ -177,30 +175,21 @@ struct UpdateProgressView: View {
             }
             .errorAlert(title: "Error Saving Progress", isPresented: $showingError, message: errorMessage)
             .task {
-                print("📱 UpdateProgressView appeared")
-                print("📱 Initial auth status: \(speechManager.authorizationStatus)")
-
                 // Set initial value
                 if currentPageInput.isEmpty {
                     currentPageInput = "\(book.currentPage)"
-                    print("📱 Set initial page input to: \(book.currentPage)")
                 }
 
                 // Request authorization on appear if needed
                 if speechManager.authorizationStatus == .notDetermined {
-                    print("📱 Requesting speech authorization...")
                     await speechManager.requestAuthorization()
-                    print("📱 Authorization result: \(speechManager.authorizationStatus)")
                 }
 
                 // Auto-start microphone if authorized (check after authorization request)
                 if speechManager.authorizationStatus == .authorized {
-                    print("📱 Authorized - attempting auto-start...")
                     // Small delay to ensure authorization is fully processed
                     try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                     speechManager.startListening()
-                } else {
-                    print("📱 Not authorized - status: \(speechManager.authorizationStatus)")
                 }
             }
             .onChange(of: speechManager.recognizedText) { _, newValue in
@@ -255,37 +244,25 @@ struct UpdateProgressView: View {
     }
 
     private func handleMicrophoneTap() {
-        print("🎤 Microphone button tapped!")
-        print("🎤 Auth status: \(speechManager.authorizationStatus)")
-        print("🎤 Is listening: \(speechManager.isListening)")
-
         // Check authorization
         switch speechManager.authorizationStatus {
         case .notDetermined:
-            print("🎤 Requesting authorization...")
             Task {
                 await speechManager.requestAuthorization()
-                print("🎤 Authorization result: \(speechManager.authorizationStatus)")
                 if speechManager.authorizationStatus == .authorized {
-                    print("🎤 Starting listening after auth...")
                     speechManager.startListening()
                 }
             }
         case .denied, .restricted:
-            print("🎤 Authorization denied/restricted - showing alert")
             showingAuthAlert = true
         case .authorized:
-            print("🎤 Already authorized")
             if speechManager.isListening {
-                print("🎤 Stopping listening...")
                 speechManager.stopListening()
             } else {
-                print("🎤 Starting listening...")
                 isTextFieldFocused = false
                 speechManager.startListening()
             }
         @unknown default:
-            print("🎤 Unknown auth status")
             break
         }
     }

@@ -31,6 +31,7 @@ extension Book {
     @NSManaged public var coverImageData: Data?
     @NSManaged public var bookDescription: String?
     @NSManaged public var status: String? // "to-read", "reading", "completed"
+    @NSManaged public var pagePhotos: NSSet?
 
 }
 
@@ -62,6 +63,29 @@ extension Book : Identifiable {
             status = newValue.rawValue
         }
     }
+
+    var pagePhotosArray: [PagePhoto] {
+        let set = pagePhotos as? Set<PagePhoto> ?? []
+        return set.sorted {
+            ($0.dateAdded ?? Date.distantPast) > ($1.dateAdded ?? Date.distantPast)
+        }
+    }
+}
+
+// MARK: - PagePhotos Relationship Helpers
+extension Book {
+
+    @objc(addPagePhotosObject:)
+    @NSManaged public func addToPagePhotos(_ value: PagePhoto)
+
+    @objc(removePagePhotosObject:)
+    @NSManaged public func removeFromPagePhotos(_ value: PagePhoto)
+
+    @objc(addPagePhotos:)
+    @NSManaged public func addToPagePhotos(_ values: NSSet)
+
+    @objc(removePagePhotos:)
+    @NSManaged public func removeFromPagePhotos(_ values: NSSet)
 }
 
 enum BookStatus: String, CaseIterable {

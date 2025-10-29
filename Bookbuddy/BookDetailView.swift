@@ -13,6 +13,9 @@ struct BookDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingUpdateProgress = false
     @State private var showingImagePicker = false
+    @State private var showingPagePhotoCapture = false
+    @State private var capturedPageImage: IdentifiableImage? = nil
+    @State private var selectedPhotoForViewing: PagePhoto? = nil
     @State private var refreshID = UUID()
 
     var body: some View {
@@ -81,9 +84,42 @@ struct BookDetailView: View {
                     
                     Spacer()
                 }
-                
+
+                // Book Description
+                if let description = book.bookDescription, !description.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Description")
+                            .font(.headline)
+
+                        Text(description)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 8)
+                }
+
+                // Capture Page Button
+                Button(action: {
+                    showingPagePhotoCapture = true
+                }) {
+                    HStack {
+                        Image(systemName: "camera.fill")
+                        Text("Capture Page")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Capture Page")
+                .accessibilityHint("Take a photo of a book page to markup and archive")
+                .padding(.top, 16)
+
                 Divider()
-                
+
                 // Reading Status
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Reading Status")
@@ -146,7 +182,42 @@ struct BookDetailView: View {
                         }
                     }
                 }
-                
+
+                // Page Photos Archive
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Page Photos")
+                        .font(.headline)
+
+                    if book.pagePhotosArray.isEmpty {
+                        Text("No page photos yet. Tap 'Capture Page' to add one.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 8)
+                    } else {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 12) {
+                            ForEach(book.pagePhotosArray) { photo in
+                                if let imageData = photo.imageData,
+                                   let uiImage = UIImage(data: imageData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 100, height: 140)
+                                        .clipped()
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                        )
+                                        .onTapGesture {
+                                            selectedPhotoForViewing = photo
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 16)
+
                 Spacer()
             }
             .padding()
@@ -178,6 +249,54 @@ struct BookDetailView: View {
                 }
             ))
         }
+        .sheet(isPresented: $showingPagePhotoCapture) {
+            PagePhotoCapture { image in
+                // Wrap in IdentifiableImage and set on main thread
+                let identifiableImage = IdentifiableImage(image: image)
+                DispatchQueue.main.async {
+                    capturedPageImage = identifiableImage
+                }
+            }
+        }
+        .fullScreenCover(item: $capturedPageImage, onDismiss: {
+            capturedPageImage = nil
+        }) { identifiableImage in
+            CapturedPhotoOptionsSheet(
+                image: identifiableImage.image,
+                onSave: { markedUpImage in
+                    // Save the marked-up image (not the original)
+                    savePagePhoto(markedUpImage)
+                    capturedPageImage = nil
+                },
+                onCancel: {
+                    capturedPageImage = nil
+                }
+            )
+        }
+        .sheet(item: $selectedPhotoForViewing, onDismiss: {
+            selectedPhotoForViewing = nil
+        }) { photo in
+            if let imageData = photo.imageData,
+               let uiImage = UIImage(data: imageData) {
+                PhotoViewerSheet(
+                    image: uiImage,
+                    dateAdded: photo.displayDate,
+                    onDelete: {
+                        deletePagePhoto(photo)
+                        selectedPhotoForViewing = nil
+                    }
+                )
+            } else {
+                VStack {
+                    Text("Unable to load photo")
+                        .foregroundColor(.secondary)
+                    Button("Close") {
+                        selectedPhotoForViewing = nil
+                    }
+                }
+                .padding()
+            }
+        }
         .id(refreshID)
     }
 
@@ -194,6 +313,39 @@ struct BookDetailView: View {
             } catch {
                 print("Failed to save cover image: \(error.localizedDescription)")
             }
+        }
+    }
+
+    private func savePagePhoto(_ image: UIImage) {
+        // Compress image to JPEG at 70% quality
+        if let imageData = image.jpegData(compressionQuality: 0.7) {
+            let pagePhoto = PagePhoto(context: viewContext)
+            pagePhoto.id = UUID()
+            pagePhoto.imageData = imageData
+            pagePhoto.dateAdded = Date()
+            pagePhoto.book = book
+
+            do {
+                try viewContext.save()
+                // Refresh view to show new photo
+                refreshID = UUID()
+                viewContext.refresh(book, mergeChanges: true)
+            } catch {
+                print("Failed to save page photo: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func deletePagePhoto(_ photo: PagePhoto) {
+        viewContext.delete(photo)
+
+        do {
+            try viewContext.save()
+            // Refresh view
+            refreshID = UUID()
+            viewContext.refresh(book, mergeChanges: true)
+        } catch {
+            print("Failed to delete page photo: \(error.localizedDescription)")
         }
     }
 }

@@ -12,5 +12,12 @@
         <attribute name="publishedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="status" optional="YES" attributeType="String"/>
         <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="pagePhotos" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PagePhoto" inverseName="book" inverseEntity="PagePhoto"/>
+    </entity>
+    <entity name="PagePhoto" representedClassName="PagePhoto" syncable="YES">
+        <attribute name="dateAdded" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="imageData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="pagePhotos" inverseEntity="Book"/>
     </entity>
 </model>
