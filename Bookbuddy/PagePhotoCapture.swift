@@ -35,23 +35,33 @@ struct PagePhotoCapture: UIViewControllerRepresentable {
         func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
             // Get the first scanned page (most recent)
             guard scan.pageCount > 0 else {
-                parent.dismiss()
+                DispatchQueue.main.async {
+                    self.parent.dismiss()
+                }
                 return
             }
 
             // VNDocumentCameraScan returns already cropped and perspective-corrected image
             let scannedImage = scan.imageOfPage(at: 0)
-            parent.onCapture(scannedImage)
-            parent.dismiss()
+
+            // Ensure callback and dismiss happen on main thread
+            DispatchQueue.main.async {
+                self.parent.onCapture(scannedImage)
+                self.parent.dismiss()
+            }
         }
 
         func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-            parent.dismiss()
+            DispatchQueue.main.async {
+                self.parent.dismiss()
+            }
         }
 
         func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
-            // Handle error gracefully - just dismiss
-            parent.dismiss()
+            // Handle error gracefully - just dismiss on main thread
+            DispatchQueue.main.async {
+                self.parent.dismiss()
+            }
         }
     }
 }

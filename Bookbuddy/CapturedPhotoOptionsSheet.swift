@@ -248,16 +248,25 @@ class MarkupHostingController: UIViewController, PKCanvasViewDelegate, PKToolPic
     }
 
     @objc private func doneTapped() {
-        // Merge the drawing with the image
-        let scale = view.window?.windowScene?.screen.scale ?? 3.0
-        let renderer = UIGraphicsImageRenderer(size: imageView.bounds.size)
-        let mergedImage = renderer.image { context in
-            // Draw original image
-            originalImage.draw(in: imageView.bounds)
+        // Merge the drawing with the image at original resolution
+        let imageSize = originalImage.size
 
-            // Draw canvas drawing on top
+        // Calculate scale factor between display size and original image size
+        let displaySize = imageView.bounds.size
+        let scaleX = imageSize.width / displaySize.width
+        let scaleY = imageSize.height / displaySize.height
+        let scaleFactor = max(scaleX, scaleY)
+
+        // Render at original image size to preserve quality
+        let renderer = UIGraphicsImageRenderer(size: imageSize)
+        let mergedImage = renderer.image { context in
+            // Draw original image at full size
+            originalImage.draw(in: CGRect(origin: .zero, size: imageSize))
+
+            // Scale and draw the canvas drawing to match original image size
             let drawing = canvasView.drawing
-            drawing.image(from: canvasView.bounds, scale: scale).draw(in: imageView.bounds)
+            let drawingImage = drawing.image(from: canvasView.bounds, scale: scaleFactor)
+            drawingImage.draw(in: CGRect(origin: .zero, size: imageSize))
         }
 
         onSave(mergedImage)
