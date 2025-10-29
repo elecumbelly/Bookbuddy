@@ -7,43 +7,50 @@
 
 import SwiftUI
 import UIKit
+import VisionKit
 
 struct PagePhotoCapture: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
     let onCapture: (UIImage) -> Void
 
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = .camera
-        picker.allowsEditing = false  // Skip built-in editing, use custom options sheet
-        return picker
+    func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
+        let documentCamera = VNDocumentCameraViewController()
+        documentCamera.delegate = context.coordinator
+        return documentCamera
     }
 
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
         let parent: PagePhotoCapture
 
         init(_ parent: PagePhotoCapture) {
             self.parent = parent
         }
 
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            // Prefer edited image (with markup) over original
-            if let editedImage = info[.editedImage] as? UIImage {
-                parent.onCapture(editedImage)
-            } else if let originalImage = info[.originalImage] as? UIImage {
-                parent.onCapture(originalImage)
+        func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
+            // Get the first scanned page (most recent)
+            guard scan.pageCount > 0 else {
+                parent.dismiss()
+                return
             }
+
+            // VNDocumentCameraScan returns already cropped and perspective-corrected image
+            let scannedImage = scan.imageOfPage(at: 0)
+            parent.onCapture(scannedImage)
             parent.dismiss()
         }
 
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
+            parent.dismiss()
+        }
+
+        func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
+            // Handle error gracefully - just dismiss
             parent.dismiss()
         }
     }
