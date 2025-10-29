@@ -38,17 +38,12 @@ class SpeechRecognitionManager: ObservableObject {
     }
 
     func startListening() {
-        print("🎙️ startListening() called")
-        print("🎙️ Current isListening: \(isListening)")
-
         guard !isListening else {
-            print("🎙️ Already listening - returning")
             return
         }
 
         // Cancel any ongoing recognition
         if recognitionTask != nil {
-            print("🎙️ Cancelling existing recognition task")
             recognitionTask?.cancel()
             recognitionTask = nil
         }
@@ -56,34 +51,26 @@ class SpeechRecognitionManager: ObservableObject {
         // Configure audio session
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            print("🎙️ Configuring audio session...")
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-            print("🎙️ Audio session configured successfully")
         } catch {
-            print("🎙️ ❌ Audio session error: \(error.localizedDescription)")
             errorMessage = "Audio session error: \(error.localizedDescription)"
             return
         }
 
         // Create recognition request
-        print("🎙️ Creating recognition request...")
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let recognitionRequest = recognitionRequest else {
-            print("🎙️ ❌ Unable to create recognition request")
             errorMessage = "Unable to create recognition request"
             return
         }
-        print("🎙️ Recognition request created")
 
         recognitionRequest.shouldReportPartialResults = true
 
         // Get audio input
         let inputNode = audioEngine.inputNode
-        print("🎙️ Got audio input node")
 
         // Start recognition task
-        print("🎙️ Starting recognition task...")
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
             guard let self = self else { return }
 
@@ -92,15 +79,11 @@ class SpeechRecognitionManager: ObservableObject {
             if let result = result {
                 Task { @MainActor in
                     self.recognizedText = result.bestTranscription.formattedString
-                    print("🎙️ Recognized: \(self.recognizedText)")
                 }
                 isFinal = result.isFinal
             }
 
             if error != nil || isFinal {
-                if let error = error {
-                    print("🎙️ Recognition error: \(error.localizedDescription)")
-                }
                 Task { @MainActor in
                     self.stopListening()
                 }
@@ -108,23 +91,19 @@ class SpeechRecognitionManager: ObservableObject {
         }
 
         // Configure microphone input
-        print("🎙️ Installing audio tap...")
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             recognitionRequest.append(buffer)
         }
 
         // Start audio engine
-        print("🎙️ Starting audio engine...")
         audioEngine.prepare()
         do {
             try audioEngine.start()
             isListening = true
             recognizedText = ""
             errorMessage = nil
-            print("🎙️ ✅ Audio engine started - now listening!")
         } catch {
-            print("🎙️ ❌ Audio engine error: \(error.localizedDescription)")
             errorMessage = "Audio engine error: \(error.localizedDescription)"
         }
     }
@@ -134,6 +113,9 @@ class SpeechRecognitionManager: ObservableObject {
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
+
+        // Reset audio session to allow other audio
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 
         isListening = false
         recognitionRequest = nil
