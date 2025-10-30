@@ -255,27 +255,35 @@ class MarkupHostingController: UIViewController, PKCanvasViewDelegate, PKToolPic
 
     @objc private func doneTapped() {
         print("📸 Markup 'Done' tapped - merging image with drawing")
-        // Merge the drawing with the image at original resolution
-        let imageSize = originalImage.size
-        print("📸 Original image size: \(imageSize)")
 
-        // Use screen scale for drawing (2-3x retina), not the full image scale
-        // This prevents GPU "too large" errors while maintaining quality
-        let screenScale = UIScreen.main.scale
-        print("📸 Using screen scale: \(screenScale)")
+        // Calculate a safe rendering size (max 3000px on longest edge to stay within GPU limits)
+        let maxDimension: CGFloat = 3000
+        let originalSize = originalImage.size
+        print("📸 Original image size: \(originalSize)")
 
-        // Render at original image size to preserve quality
-        let renderer = UIGraphicsImageRenderer(size: imageSize)
+        let scale: CGFloat
+        if max(originalSize.width, originalSize.height) > maxDimension {
+            scale = maxDimension / max(originalSize.width, originalSize.height)
+        } else {
+            scale = 1.0
+        }
+
+        let renderSize = CGSize(width: originalSize.width * scale, height: originalSize.height * scale)
+        print("📸 Render size: \(renderSize), scale: \(scale)")
+
+        // Create renderer with explicit scale of 1.0 (prevents UIScreen.main.scale multiplication)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0  // Critical: prevents 3x multiplication
+        let renderer = UIGraphicsImageRenderer(size: renderSize, format: format)
+
         let mergedImage = renderer.image { context in
-            // Draw original image at full size
-            originalImage.draw(in: CGRect(origin: .zero, size: imageSize))
+            // Draw original image
+            originalImage.draw(in: CGRect(origin: .zero, size: renderSize))
 
-            // Render drawing at canvas size with screen scale, then scale to image size
+            // Render drawing and overlay it
             let drawing = canvasView.drawing
-            let drawingImage = drawing.image(from: canvasView.bounds, scale: screenScale)
-
-            // Scale the drawing to fill the original image size
-            drawingImage.draw(in: CGRect(origin: .zero, size: imageSize))
+            let drawingImage = drawing.image(from: canvasView.bounds, scale: 1.0)
+            drawingImage.draw(in: CGRect(origin: .zero, size: renderSize))
         }
 
         print("📸 Merged image created, size: \(mergedImage.size)")
