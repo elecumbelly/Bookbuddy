@@ -259,12 +259,10 @@ class MarkupHostingController: UIViewController, PKCanvasViewDelegate, PKToolPic
         let imageSize = originalImage.size
         print("📸 Original image size: \(imageSize)")
 
-        // Calculate scale factor between display size and original image size
-        let displaySize = imageView.bounds.size
-        let scaleX = imageSize.width / displaySize.width
-        let scaleY = imageSize.height / displaySize.height
-        let scaleFactor = max(scaleX, scaleY)
-        print("📸 Scale factor: \(scaleFactor)")
+        // Use screen scale for drawing (2-3x retina), not the full image scale
+        // This prevents GPU "too large" errors while maintaining quality
+        let screenScale = UIScreen.main.scale
+        print("📸 Using screen scale: \(screenScale)")
 
         // Render at original image size to preserve quality
         let renderer = UIGraphicsImageRenderer(size: imageSize)
@@ -272,9 +270,11 @@ class MarkupHostingController: UIViewController, PKCanvasViewDelegate, PKToolPic
             // Draw original image at full size
             originalImage.draw(in: CGRect(origin: .zero, size: imageSize))
 
-            // Scale and draw the canvas drawing to match original image size
+            // Render drawing at canvas size with screen scale, then scale to image size
             let drawing = canvasView.drawing
-            let drawingImage = drawing.image(from: canvasView.bounds, scale: scaleFactor)
+            let drawingImage = drawing.image(from: canvasView.bounds, scale: screenScale)
+
+            // Scale the drawing to fill the original image size
             drawingImage.draw(in: CGRect(origin: .zero, size: imageSize))
         }
 

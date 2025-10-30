@@ -7,6 +7,7 @@
 
 import SwiftUI
 internal import CoreData
+import AVFoundation
 
 struct BookDetailView: View {
     let book: Book
@@ -51,6 +52,8 @@ struct BookDetailView: View {
 
                         // Camera button overlay
                         Button(action: {
+                            // Ensure audio session is deactivated before opening camera
+                            ensureAudioSessionDeactivated()
                             showingImagePicker = true
                         }) {
                             Image(systemName: "camera.fill")
@@ -101,6 +104,8 @@ struct BookDetailView: View {
 
                 // Capture Page Button
                 Button(action: {
+                    // Ensure audio session is deactivated before opening camera
+                    ensureAudioSessionDeactivated()
                     showingPagePhotoCapture = true
                 }) {
                     HStack {
@@ -301,6 +306,24 @@ struct BookDetailView: View {
             }
         }
         .id(refreshID)
+    }
+
+    // Ensure audio session is deactivated before opening camera
+    // This prevents speech recognition from blocking camera audio access
+    private func ensureAudioSessionDeactivated() {
+        let audioSession = AVAudioSession.sharedInstance()
+        if audioSession.category == .record || audioSession.category == .playAndRecord {
+            print("🎙️ Deactivating audio session before opening camera")
+            do {
+                try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+                print("🎙️ ✅ Audio session deactivated")
+            } catch {
+                print("🎙️ ⚠️ Failed to deactivate audio session: \(error.localizedDescription)")
+                // Non-fatal: camera may still work
+            }
+        } else {
+            print("🎙️ Audio session already inactive or compatible (\(audioSession.category.rawValue))")
+        }
     }
 
     private func saveCoverImage(_ image: UIImage) {
