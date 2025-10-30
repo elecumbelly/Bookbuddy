@@ -66,8 +66,11 @@ struct CapturedPhotoOptionsSheet: View {
                     }
 
                     Button(action: {
+                        print("📸 'Save to Archive' button tapped")
+                        print("📸 Image size being saved: \(image.size)")
                         // Pass the current image (with markup if applied)
                         onSave(image)
+                        print("📸 onSave callback completed, calling dismiss()")
                         dismiss()
                     }) {
                         HStack {
@@ -110,9 +113,12 @@ struct MarkupViewController: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UINavigationController {
         let markupVC = MarkupHostingController(image: image) { editedImage in
+            print("📸 Markup completed - edited image size: \(editedImage.size)")
             context.coordinator.parent.image = editedImage
+            print("📸 Updated binding with edited image")
             context.coordinator.parent.dismiss()
         } onCancel: {
+            print("📸 Markup cancelled")
             context.coordinator.parent.dismiss()
         }
 
@@ -248,14 +254,17 @@ class MarkupHostingController: UIViewController, PKCanvasViewDelegate, PKToolPic
     }
 
     @objc private func doneTapped() {
+        print("📸 Markup 'Done' tapped - merging image with drawing")
         // Merge the drawing with the image at original resolution
         let imageSize = originalImage.size
+        print("📸 Original image size: \(imageSize)")
 
         // Calculate scale factor between display size and original image size
         let displaySize = imageView.bounds.size
         let scaleX = imageSize.width / displaySize.width
         let scaleY = imageSize.height / displaySize.height
         let scaleFactor = max(scaleX, scaleY)
+        print("📸 Scale factor: \(scaleFactor)")
 
         // Render at original image size to preserve quality
         let renderer = UIGraphicsImageRenderer(size: imageSize)
@@ -269,6 +278,8 @@ class MarkupHostingController: UIViewController, PKCanvasViewDelegate, PKToolPic
             drawingImage.draw(in: CGRect(origin: .zero, size: imageSize))
         }
 
+        print("📸 Merged image created, size: \(mergedImage.size)")
+        print("📸 Calling onSave with merged image")
         onSave(mergedImage)
     }
 }

@@ -264,11 +264,14 @@ struct BookDetailView: View {
             CapturedPhotoOptionsSheet(
                 image: identifiableImage.image,
                 onSave: { markedUpImage in
+                    print("📸 onSave callback triggered from CapturedPhotoOptionsSheet")
                     // Save the marked-up image (not the original)
                     savePagePhoto(markedUpImage)
                     capturedPageImage = nil
+                    print("📸 capturedPageImage set to nil (should dismiss)")
                 },
                 onCancel: {
+                    print("📸 onCancel callback triggered")
                     capturedPageImage = nil
                 }
             )
@@ -317,22 +320,33 @@ struct BookDetailView: View {
     }
 
     private func savePagePhoto(_ image: UIImage) {
+        print("📸 savePagePhoto called - image size: \(image.size)")
+
         // Compress image to JPEG at 70% quality
         if let imageData = image.jpegData(compressionQuality: 0.7) {
+            print("📸 Image compressed to \(imageData.count) bytes")
             let pagePhoto = PagePhoto(context: viewContext)
             pagePhoto.id = UUID()
             pagePhoto.imageData = imageData
             pagePhoto.dateAdded = Date()
             pagePhoto.book = book
 
+            print("📸 PagePhoto entity created, saving to Core Data...")
+
             do {
                 try viewContext.save()
+                print("📸 ✅ Successfully saved to Core Data!")
+                print("📸 Book now has \(book.pagePhotosArray.count) photos")
+
                 // Refresh view to show new photo
                 refreshID = UUID()
                 viewContext.refresh(book, mergeChanges: true)
+                print("📸 View refreshed with new refreshID")
             } catch {
-                print("Failed to save page photo: \(error.localizedDescription)")
+                print("📸 ❌ Failed to save page photo: \(error.localizedDescription)")
             }
+        } else {
+            print("📸 ❌ Failed to compress image to JPEG")
         }
     }
 
