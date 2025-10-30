@@ -256,7 +256,7 @@ struct BookDetailView: View {
         }
         .fullScreenCover(isPresented: $showingPagePhotoCapture) {
             PagePhotoCapture { image in
-                // Wrap in IdentifiableImage and set on main thread
+                // Go directly to markup after capture
                 let identifiableImage = IdentifiableImage(image: image)
                 DispatchQueue.main.async {
                     capturedPageImage = identifiableImage
@@ -266,17 +266,16 @@ struct BookDetailView: View {
         .fullScreenCover(item: $capturedPageImage, onDismiss: {
             capturedPageImage = nil
         }) { identifiableImage in
-            CapturedPhotoOptionsSheet(
+            // Streamlined flow: Capture → Markup → Auto-save
+            DirectMarkupView(
                 image: identifiableImage.image,
                 onSave: { markedUpImage in
-                    print("📸 onSave callback triggered from CapturedPhotoOptionsSheet")
-                    // Save the marked-up image (not the original)
+                    print("📸 Auto-saving marked-up image")
                     savePagePhoto(markedUpImage)
                     capturedPageImage = nil
-                    print("📸 capturedPageImage set to nil (should dismiss)")
                 },
                 onCancel: {
-                    print("📸 onCancel callback triggered")
+                    print("📸 Markup cancelled - discarding photo")
                     capturedPageImage = nil
                 }
             )

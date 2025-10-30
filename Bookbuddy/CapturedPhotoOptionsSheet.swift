@@ -8,6 +8,44 @@
 import SwiftUI
 import PencilKit
 
+// MARK: - Direct Markup View (Streamlined Flow)
+/// Goes straight to markup after capture, auto-saves on completion
+struct DirectMarkupView: UIViewControllerRepresentable {
+    @Environment(\.dismiss) private var dismiss
+    let image: UIImage
+    let onSave: (UIImage) -> Void
+    let onCancel: () -> Void
+
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let markupVC = MarkupHostingController(image: image) { editedImage in
+            print("📸 Markup completed - auto-saving")
+            context.coordinator.parent.onSave(editedImage)
+            context.coordinator.parent.dismiss()
+        } onCancel: {
+            print("📸 Markup cancelled - discarding")
+            context.coordinator.parent.onCancel()
+            context.coordinator.parent.dismiss()
+        }
+
+        let navController = UINavigationController(rootViewController: markupVC)
+        return navController
+    }
+
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject {
+        let parent: DirectMarkupView
+
+        init(_ parent: DirectMarkupView) {
+            self.parent = parent
+        }
+    }
+}
+
 struct CapturedPhotoOptionsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var image: UIImage
