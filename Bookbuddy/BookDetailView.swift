@@ -16,7 +16,8 @@ struct BookDetailView: View {
     @State private var showingImagePicker = false
     @State private var showingPagePhotoCapture = false
     @State private var capturedImageForCrop: IdentifiableImage? = nil
-    @State private var croppedImageForMarkup: IdentifiableImage? = nil
+    @State private var croppedImageForPreview: IdentifiableImage? = nil
+    @State private var previewImageForMarkup: IdentifiableImage? = nil
     @State private var selectedPhotoForViewing: PagePhoto? = nil
     @State private var refreshID = UUID()
 
@@ -267,12 +268,12 @@ struct BookDetailView: View {
         .fullScreenCover(item: $capturedImageForCrop, onDismiss: {
             capturedImageForCrop = nil
         }) { identifiableImage in
-            // Step 2: Crop → send to markup
+            // Step 2: Crop → send to preview
             ImageCropView(
                 image: identifiableImage.image,
                 onCrop: { croppedImage in
-                    print("📸 Image cropped, going to markup")
-                    croppedImageForMarkup = IdentifiableImage(image: croppedImage)
+                    print("📸 Image cropped, going to preview")
+                    croppedImageForPreview = IdentifiableImage(image: croppedImage)
                     capturedImageForCrop = nil
                 },
                 onCancel: {
@@ -281,20 +282,42 @@ struct BookDetailView: View {
                 }
             )
         }
-        .fullScreenCover(item: $croppedImageForMarkup, onDismiss: {
-            croppedImageForMarkup = nil
+        .fullScreenCover(item: $croppedImageForPreview, onDismiss: {
+            croppedImageForPreview = nil
         }) { identifiableImage in
-            // Step 3: Markup → Auto-save
+            // Step 3: Preview with 3 buttons (Markup/Share/Save to Archive)
+            CapturedPhotoOptionsSheet(
+                image: identifiableImage.image,
+                onSave: { finalImage in
+                    print("📸 Saving from preview (direct save)")
+                    savePagePhoto(finalImage)
+                    croppedImageForPreview = nil
+                },
+                onMarkup: { imageToMarkup in
+                    print("📸 Going to markup from preview")
+                    previewImageForMarkup = IdentifiableImage(image: imageToMarkup)
+                },
+                onCancel: {
+                    print("📸 Preview cancelled - discarding photo")
+                    croppedImageForPreview = nil
+                }
+            )
+        }
+        .fullScreenCover(item: $previewImageForMarkup, onDismiss: {
+            previewImageForMarkup = nil
+        }) { identifiableImage in
+            // Step 4: Markup (if user taps Markup button)
             DirectMarkupView(
                 image: identifiableImage.image,
                 onSave: { markedUpImage in
                     print("📸 Auto-saving marked-up image")
                     savePagePhoto(markedUpImage)
-                    croppedImageForMarkup = nil
+                    previewImageForMarkup = nil
+                    croppedImageForPreview = nil
                 },
                 onCancel: {
-                    print("📸 Markup cancelled - discarding photo")
-                    croppedImageForMarkup = nil
+                    print("📸 Markup cancelled - back to preview")
+                    previewImageForMarkup = nil
                 }
             )
         }

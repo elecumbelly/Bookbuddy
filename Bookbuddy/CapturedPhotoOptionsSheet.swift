@@ -49,15 +49,16 @@ struct DirectMarkupView: UIViewControllerRepresentable {
 struct CapturedPhotoOptionsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var image: UIImage
-    @State private var showingMarkup = false
     @State private var showingShareSheet = false
 
     let onSave: (UIImage) -> Void
+    let onMarkup: (UIImage) -> Void
     let onCancel: () -> Void
 
-    init(image: UIImage, onSave: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
+    init(image: UIImage, onSave: @escaping (UIImage) -> Void, onMarkup: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
         self._image = State(initialValue: image)
         self.onSave = onSave
+        self.onMarkup = onMarkup
         self.onCancel = onCancel
     }
 
@@ -76,7 +77,9 @@ struct CapturedPhotoOptionsSheet: View {
                 // Action buttons
                 VStack(spacing: 12) {
                     Button(action: {
-                        showingMarkup = true
+                        print("📸 'Markup' button tapped - going to markup")
+                        onMarkup(image)
+                        dismiss()
                     }) {
                         HStack {
                             Image(systemName: "pencil.tip.crop.circle")
@@ -133,9 +136,6 @@ struct CapturedPhotoOptionsSheet: View {
                         dismiss()
                     }
                 }
-            }
-            .sheet(isPresented: $showingMarkup) {
-                MarkupViewController(image: $image)
             }
             .sheet(isPresented: $showingShareSheet) {
                 ShareSheet(items: [image])
