@@ -249,7 +249,7 @@ struct BookDetailView: View {
                 }
             ))
         }
-        .sheet(isPresented: $showingPagePhotoCapture) {
+        .fullScreenCover(isPresented: $showingPagePhotoCapture) {
             PagePhotoCapture { image in
                 // Wrap in IdentifiableImage and set on main thread
                 let identifiableImage = IdentifiableImage(image: image)
