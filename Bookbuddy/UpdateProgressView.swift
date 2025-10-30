@@ -210,6 +210,11 @@ struct UpdateProgressView: View {
             .onDisappear {
                 // Clean up countdown task when view disappears
                 cancelAutoSaveCountdown()
+
+                // Stop speech recognition to free audio session for camera
+                if speechManager.isListening {
+                    speechManager.stopListening()
+                }
             }
         }
     }

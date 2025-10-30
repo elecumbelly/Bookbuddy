@@ -115,7 +115,6 @@ class SpeechRecognitionManager: ObservableObject {
         }
     }
 
-    #warning("🚨 PROTECTED CODE: Do not add AVAudioSession.setActive(false) here - interferes with camera audio. See .agent/.agentknown-issues.md")
     func stopListening() {
         print("🎙️ stopListening() called")
         audioEngine.stop()
@@ -123,11 +122,15 @@ class SpeechRecognitionManager: ObservableObject {
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
 
-        // ⚠️ CRITICAL: DO NOT call AVAudioSession.setActive(false) here!
-        // Aggressive audio session deactivation interferes with camera/document scanner audio,
-        // causing gesture recognition failures and "FigCaptureSourceRemote" errors.
-        // Let iOS manage audio session lifecycle automatically. (See v0.5.2 → v0.5.3 regression)
-        // Reference: .agent/.agentknown-issues.md
+        // Deactivate audio session to free it for camera/document scanner
+        // Use .notifyOthersOnDeactivation to allow other audio sessions to resume
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            print("🎙️ Audio session deactivated")
+        } catch {
+            print("🎙️ ⚠️ Failed to deactivate audio session: \(error.localizedDescription)")
+            // Non-fatal: continue cleanup even if deactivation fails
+        }
 
         isListening = false
         recognitionRequest = nil
