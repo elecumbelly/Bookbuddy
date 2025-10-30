@@ -52,7 +52,6 @@ struct ImageCropView: View {
         }
     }
 
-    @ViewBuilder
     private func imageView(geometry: GeometryProxy) -> some View {
         let imageSize = image.size
         let viewSize = geometry.size
@@ -76,7 +75,7 @@ struct ImageCropView: View {
             )
         }
 
-        ZStack {
+        return ZStack {
             // Image with zoom and pan
             Image(uiImage: image)
                 .resizable()
