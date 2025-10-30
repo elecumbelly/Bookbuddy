@@ -30,67 +30,7 @@ struct ImageCropView: View {
                 Color.black.ignoresSafeArea()
 
                 GeometryReader { geometry in
-                    let imageSize = image.size
-                    let viewSize = geometry.size
-
-                    // Calculate fitted image size
-                    let imageAspect = imageSize.width / imageSize.height
-                    let viewAspect = viewSize.width / viewSize.height
-
-                    let displaySize: CGSize
-                    if imageAspect > viewAspect {
-                        // Image is wider
-                        displaySize = CGSize(
-                            width: viewSize.width,
-                            height: viewSize.width / imageAspect
-                        )
-                    } else {
-                        // Image is taller
-                        displaySize = CGSize(
-                            width: viewSize.height * imageAspect,
-                            height: viewSize.height
-                        )
-                    }
-
-                    ZStack {
-                        // Image with zoom and pan
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: displaySize.width * scale, height: displaySize.height * scale)
-                            .offset(x: offset.width, y: offset.height)
-
-                        // Crop overlay
-                        CropOverlay(
-                            cropRect: $cropRect,
-                            displaySize: displaySize,
-                            scale: scale,
-                            offset: offset
-                        )
-                    }
-                    .frame(width: viewSize.width, height: viewSize.height)
-                    .gesture(
-                        MagnificationGesture()
-                            .onChanged { value in
-                                let newScale = lastScale * value
-                                scale = min(max(newScale, minScale), maxScale)
-                            }
-                            .onEnded { _ in
-                                lastScale = scale
-                            }
-                    )
-                    .simultaneousGesture(
-                        DragGesture()
-                            .onChanged { value in
-                                offset = CGSize(
-                                    width: lastOffset.width + value.translation.width,
-                                    height: lastOffset.height + value.translation.height
-                                )
-                            }
-                            .onEnded { _ in
-                                lastOffset = offset
-                            }
-                    )
+                    imageView(geometry: geometry)
                 }
             }
             .navigationTitle("Adjust Crop")
@@ -110,6 +50,71 @@ struct ImageCropView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func imageView(geometry: GeometryProxy) -> some View {
+        let imageSize = image.size
+        let viewSize = geometry.size
+
+        // Calculate fitted image size
+        let imageAspect = imageSize.width / imageSize.height
+        let viewAspect = viewSize.width / viewSize.height
+
+        let displaySize: CGSize
+        if imageAspect > viewAspect {
+            // Image is wider
+            displaySize = CGSize(
+                width: viewSize.width,
+                height: viewSize.width / imageAspect
+            )
+        } else {
+            // Image is taller
+            displaySize = CGSize(
+                width: viewSize.height * imageAspect,
+                height: viewSize.height
+            )
+        }
+
+        ZStack {
+            // Image with zoom and pan
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: displaySize.width * scale, height: displaySize.height * scale)
+                .offset(x: offset.width, y: offset.height)
+
+            // Crop overlay
+            CropOverlay(
+                cropRect: $cropRect,
+                displaySize: displaySize,
+                scale: scale,
+                offset: offset
+            )
+        }
+        .frame(width: viewSize.width, height: viewSize.height)
+        .gesture(
+            MagnificationGesture()
+                .onChanged { value in
+                    let newScale = lastScale * value
+                    scale = min(max(newScale, minScale), maxScale)
+                }
+                .onEnded { _ in
+                    lastScale = scale
+                }
+        )
+        .simultaneousGesture(
+            DragGesture()
+                .onChanged { value in
+                    offset = CGSize(
+                        width: lastOffset.width + value.translation.width,
+                        height: lastOffset.height + value.translation.height
+                    )
+                }
+                .onEnded { _ in
+                    lastOffset = offset
+                }
+        )
     }
 
     private func cropImage() {
