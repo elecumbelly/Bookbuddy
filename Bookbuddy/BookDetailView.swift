@@ -293,11 +293,11 @@ struct BookDetailView: View {
         .fullScreenCover(item: $previewImageForCrop, onDismiss: {
             previewImageForCrop = nil
         }) { identifiableImage in
-            // Step 3: Optional Crop (if user taps Adjust Crop)
-            ImageCropView(
+            // Step 3: Optional Perspective Crop (if user taps Adjust Crop)
+            PerspectiveCropView(
                 image: identifiableImage.image,
                 onCrop: { croppedImage in
-                    print("📸 Image cropped, returning to preview")
+                    print("📸 Image perspective-corrected, returning to preview")
                     // Replace preview image with cropped version
                     capturedImageForPreview = IdentifiableImage(image: croppedImage)
                     previewImageForCrop = nil
