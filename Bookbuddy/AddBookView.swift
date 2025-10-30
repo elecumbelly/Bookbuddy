@@ -174,6 +174,7 @@ struct AddBookView: View {
     @State private var showError = false
     @State private var isScanning = true
     @State private var cameraPermissionDenied = false
+    @State private var showPageCountWarning = false
     @FocusState private var isbnFieldFocused: Bool
 
     private var isbnValidationState: ISBNValidationState {
@@ -265,6 +266,25 @@ struct AddBookView: View {
                                 .keyboardType(.numberPad)
                                 .textFieldStyle(.roundedBorder)
                                 .padding(.horizontal)
+                                .onChange(of: pageCount) { _, newValue in
+                                    // Hide warning if user enters a valid page count
+                                    if let count = Int(newValue), count > 0 {
+                                        showPageCountWarning = false
+                                    }
+                                }
+
+                            // Page count warning
+                            if showPageCountWarning {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                    Text("Page count not found - please enter manually")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.horizontal)
+                            }
 
                             // Publication Date
                             publicationDateSection
@@ -575,6 +595,9 @@ struct AddBookView: View {
 
         if let pages = bookData["number_of_pages"] as? Int {
             pageCount = String(pages)
+            showPageCountWarning = (pages == 0)
+        } else {
+            showPageCountWarning = true
         }
 
         // Try multiple fields for description
