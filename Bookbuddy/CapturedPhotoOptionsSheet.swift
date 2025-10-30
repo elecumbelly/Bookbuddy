@@ -53,12 +53,14 @@ struct CapturedPhotoOptionsSheet: View {
 
     let onSave: (UIImage) -> Void
     let onMarkup: (UIImage) -> Void
+    let onAdjustCrop: (UIImage) -> Void
     let onCancel: () -> Void
 
-    init(image: UIImage, onSave: @escaping (UIImage) -> Void, onMarkup: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
+    init(image: UIImage, onSave: @escaping (UIImage) -> Void, onMarkup: @escaping (UIImage) -> Void, onAdjustCrop: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
         self._image = State(initialValue: image)
         self.onSave = onSave
         self.onMarkup = onMarkup
+        self.onAdjustCrop = onAdjustCrop
         self.onCancel = onCancel
     }
 
@@ -76,6 +78,22 @@ struct CapturedPhotoOptionsSheet: View {
 
                 // Action buttons
                 VStack(spacing: 12) {
+                    Button(action: {
+                        print("📸 'Adjust Crop' button tapped - going to crop")
+                        onAdjustCrop(image)
+                        dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "crop")
+                            Text("Adjust Crop")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+
                     Button(action: {
                         print("📸 'Markup' button tapped - going to markup")
                         onMarkup(image)
