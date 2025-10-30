@@ -186,7 +186,6 @@ struct UpdateProgressView: View {
                     await speechManager.requestAuthorization()
                 }
 
-                #warning("🚨 PROTECTED CODE: Do not remove auto-start - it's REQUIRED for hands-free workflow. See .agent/.agentknown-issues.md")
                 // ⚠️ IMPORTANT: Auto-start microphone is REQUIRED by user workflow
                 // User wants hands-free operation - mic starts automatically, button is only
                 // used to stop/restart if speech recognition gets it wrong.
@@ -254,7 +253,6 @@ struct UpdateProgressView: View {
         }
     }
 
-    #warning("🚨 PROTECTED CODE: Do not add UIImpactFeedbackGenerator here - breaks gesture recognition on devices without haptic support. See .agent/.agentknown-issues.md")
     private func handleMicrophoneTap() {
         print("🎙️ Mic button tapped")
 
