@@ -62,7 +62,7 @@ Bookbuddy/
 │   ├── AddBookView.swift              # Add/edit book with scanner
 │   ├── UpdateProgressView.swift       # Voice progress updates
 │   ├── PhotoViewerSheet.swift         # Full-screen photo viewer with zoom
-│   ├── CapturedPhotoOptionsSheet.swift # Photo preview with 4-button interface
+│   ├── CapturedPhotoOptionsSheet.swift # Photo preview with 3-button interface
 │   ├── PagePhotoCapture.swift         # Document scanner wrapper
 │   └── PerspectiveCropView.swift      # Perspective correction with corner handles
 ├── Managers
