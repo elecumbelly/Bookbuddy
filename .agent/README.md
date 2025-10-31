@@ -72,10 +72,11 @@ Contains:
 - Planning migrations
 - Understanding existing workflows
 
-**Current Version:** v0.5.3
+**Current Version:** v0.5.4
 - Document scanner for page photos (v0.5)
-- Speech recognition for progress updates (v0.3 → v0.5.3)
+- Speech recognition for progress updates (v0.3 → v0.5.4)
 - Page photo markup and archive (v0.4)
+- Perspective crop with keystone correction (v0.5.1)
 
 ---
 
@@ -166,5 +167,5 @@ Keep files focused, current, and actionable.
 
 ---
 
-*Last Updated: October 29, 2025 (v0.5.3)*
+*Last Updated: October 31, 2025 (v0.5.4)*
 *Directory Structure: Flat (no subdirectories) for simplicity*
