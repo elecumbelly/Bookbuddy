@@ -28,7 +28,6 @@ Perfect for bedtime readers who want to quickly log their reading progress or sc
 
 ### 📸 Page Photo Capture & Markup
 - **Document Scanner**: Apple's VNDocumentCameraViewController with automatic edge detection
-- **Perspective Crop**: Optional 4-corner keystone correction for perfect page alignment
 - **Page Photography**: Capture photos of interesting book pages with professional scanning
 - **PencilKit Markup**: Annotate with pen, pencil, highlighter, eraser, and ruler
 - **Pinch-to-Zoom**: Zoom up to 5x during markup for precise annotations
@@ -160,8 +159,7 @@ Bookbuddy/
 2. Tap **Capture Page** button
 3. Document scanner opens automatically with edge detection
 4. Position the page and tap capture
-5. **Preview screen** appears with 4 options:
-   - **Adjust Crop**: Fine-tune perspective with 4-corner keystone correction (optional)
+5. **Preview screen** appears with 3 options:
    - **Markup**: Annotate with pen, pencil, highlighter, eraser, ruler (optional)
    - **Share**: Share the photo via iOS share sheet
    - **Save to Archive**: Keep the photo with your book
@@ -301,7 +299,6 @@ This project is open source and available under the [MIT License](LICENSE).
 - [x] Barcode scanning for ISBN lookup
 - [x] Voice-enabled progress updates
 - [x] Document scanner with automatic edge detection
-- [x] Perspective crop with 4-corner keystone correction
 - [x] Page photo capture with markup
 - [x] Photo archive and viewer
 - [x] Zoom functionality for markup and viewing

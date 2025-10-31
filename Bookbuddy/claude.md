@@ -14,7 +14,6 @@
 - ✅ **Book Lookup**: Automatic metadata fetching from Open Library API
 - ✅ **Voice Progress**: Hands-free reading progress updates with speech recognition
 - ✅ **Document Scanner**: VNDocumentCameraViewController for page capture with automatic edge detection
-- ✅ **Perspective Crop**: Optional 4-corner keystone correction with CIPerspectiveCorrection filter
 - ✅ **Photo Markup**: PencilKit integration with pinch-to-zoom (up to 5x) during annotation
 - ✅ **Photo Archive**: Store and view marked-up page photos with zoom capability
 - ✅ **Reading Progress**: Visual progress bars and percentage tracking
@@ -23,10 +22,9 @@
 
 ### Photo Capture Flow (v0.5.4)
 1. **Capture**: VNDocumentCameraViewController with automatic edge detection
-2. **Preview**: 4-button interface (Adjust Crop / Markup / Share / Save to Archive)
-3. **Optional Crop**: Perspective correction with draggable corner handles
-4. **Optional Markup**: PencilKit annotation with zoom support
-5. **Save**: Compressed JPEG storage in Core Data
+2. **Preview**: 3-button interface (Markup / Share / Save to Archive)
+3. **Optional Markup**: PencilKit annotation with zoom support
+4. **Save**: Compressed JPEG storage in Core Data
 
 ## Core Technologies
 
@@ -36,7 +34,6 @@
 - **Speech:** iOS Speech framework for voice input
 - **Camera:** AVFoundation for barcode scanning
 - **Document Scanning:** VisionKit (VNDocumentCameraViewController)
-- **Image Processing:** Core Image (CIPerspectiveCorrection filter)
 - **Drawing:** PencilKit for photo markup and annotations
 - **Networking:** URLSession with async/await for API calls
 
@@ -139,15 +136,8 @@ Bookbuddy/
 - Returns already-cropped scanned image
 - Full-screen presentation required (`.fullScreenCover`)
 
-### Perspective Crop
-- **Optional feature**: Accessed via "Adjust Crop" button in preview
-- **4-corner handles**: Draggable TL/TR/BL/BR with normalized coordinates
-- **CIPerspectiveCorrection**: Core Image filter for keystone adjustment
-- **Visual grid**: Rule-of-thirds overlay for alignment
-- **Non-destructive**: Returns new image, doesn't modify original
-
 ### Photo Capture & Markup
-- **Flow**: Scan → Preview (4 buttons) → Optional Crop → Optional Markup → Save
+- **Flow**: Scan → Preview (3 buttons) → Optional Markup → Save
 - **PencilKit integration**: Professional drawing tools (pen, pencil, highlighter, eraser, ruler)
 - **Pinch-to-zoom**: 1x-5x during markup for precise annotations
 - **Image rendering**: Max 3000px to avoid GPU memory limits
