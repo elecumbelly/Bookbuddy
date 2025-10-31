@@ -41,7 +41,7 @@ struct PerspectiveCropView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("Save") {
                         applyCrop()
                     }
                 }
@@ -122,10 +122,10 @@ struct PerspectiveCropView: View {
         // Apply perspective correction
         let filter = CIFilter.perspectiveCorrection()
         filter.inputImage = ciImage
-        filter.topLeft = tl
-        filter.topRight = tr
-        filter.bottomLeft = bl
-        filter.bottomRight = br
+        filter.setValue(tl, forKey: "inputTopLeft")
+        filter.setValue(tr, forKey: "inputTopRight")
+        filter.setValue(bl, forKey: "inputBottomLeft")
+        filter.setValue(br, forKey: "inputBottomRight")
 
         guard let outputImage = filter.outputImage else {
             print("📸 ⚠️ Perspective correction failed")

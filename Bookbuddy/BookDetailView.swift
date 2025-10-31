@@ -16,7 +16,6 @@ struct BookDetailView: View {
     @State private var showingImagePicker = false
     @State private var showingPagePhotoCapture = false
     @State private var capturedImageForPreview: IdentifiableImage? = nil
-    @State private var previewImageForCrop: IdentifiableImage? = nil
     @State private var previewImageForMarkup: IdentifiableImage? = nil
     @State private var selectedPhotoForViewing: PagePhoto? = nil
     @State private var refreshID = UUID()
@@ -268,7 +267,7 @@ struct BookDetailView: View {
         .fullScreenCover(item: $capturedImageForPreview, onDismiss: {
             capturedImageForPreview = nil
         }) { identifiableImage in
-            // Step 2: Preview with 4 buttons (Adjust Crop/Markup/Share/Save to Archive)
+            // Step 2: Preview with 3 buttons (Markup/Share/Save to Archive)
             CapturedPhotoOptionsSheet(
                 image: identifiableImage.image,
                 onSave: { finalImage in
@@ -280,31 +279,9 @@ struct BookDetailView: View {
                     print("📸 Going to markup from preview")
                     previewImageForMarkup = IdentifiableImage(image: imageToMarkup)
                 },
-                onAdjustCrop: { imageToCrop in
-                    print("📸 Going to crop from preview")
-                    previewImageForCrop = IdentifiableImage(image: imageToCrop)
-                },
                 onCancel: {
                     print("📸 Preview cancelled - discarding photo")
                     capturedImageForPreview = nil
-                }
-            )
-        }
-        .fullScreenCover(item: $previewImageForCrop, onDismiss: {
-            previewImageForCrop = nil
-        }) { identifiableImage in
-            // Step 3: Optional Perspective Crop (if user taps Adjust Crop)
-            PerspectiveCropView(
-                image: identifiableImage.image,
-                onCrop: { croppedImage in
-                    print("📸 Image perspective-corrected, returning to preview")
-                    // Replace preview image with cropped version
-                    capturedImageForPreview = IdentifiableImage(image: croppedImage)
-                    previewImageForCrop = nil
-                },
-                onCancel: {
-                    print("📸 Crop cancelled - back to preview")
-                    previewImageForCrop = nil
                 }
             )
         }
